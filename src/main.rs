@@ -1,4 +1,4 @@
-use::dom_web_component;
+use dom_web_component::DanceOmaticWebComponent;
 
 
 fn main() {

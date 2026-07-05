@@ -1,5 +1,4 @@
 use yew::prelude::*;
-use yew_router::prelude::{use_navigator, Navigator};
 
 #[function_component(MainPage)]
 pub fn main_page() -> Html {
