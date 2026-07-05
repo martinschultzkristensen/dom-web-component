@@ -1,12 +1,9 @@
-
-
 @font-face {
   font-family: "PressStart2P-vaV7";
   src: url("static/PressStart2P-vaV7.ttf") format("truetype");
   font-weight: normal;
   font-style: normal;
 }
-
 
 @font-face {
   font-family: "PressStart2P-vaV7";
@@ -18,19 +15,19 @@
 $shade-0: #fff !default;
 $shade-1: #d7dcdf !default;
 $shade-10: #2c3e50 !default;
-$teal: #FCE837 !default;
+$teal: #fce837 !default;
 
 // Mixin for gradient text
 @mixin gradient-text {
-  background-image: linear-gradient(to bottom, $shade-1, $teal, #FC7800, );
+  background-image: linear-gradient(to bottom, $shade-1, $teal, #fc7800);
   -webkit-background-clip: text;
   color: transparent;
 }
-$teal: #FCE837 !default;
+$teal: #fce837 !default;
 
 // Mixin for gradient text
 @mixin gradient-text {
-  background-image: linear-gradient(to bottom, $shade-1, $teal, #FC7800, );
+  background-image: linear-gradient(to bottom, $shade-1, $teal, #fc7800);
   -webkit-background-clip: text;
   color: transparent;
 }
@@ -46,8 +43,22 @@ body {
   overflow: hidden;
 }
 
-h1, h2, h3, h4, h5, h6 {@include gradient-text;}
-h1, h2, h3, h4, h5, h6 {@include gradient-text;}
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  @include gradient-text;
+}
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  @include gradient-text;
+}
 
 .page {
   min-height: 100vh;
@@ -95,10 +106,9 @@ h1, h2, h3, h4, h5, h6 {@include gradient-text;}
   flex: 0 0 50%;
   display: flex;
   flex-direction: column;
-  align-items: center; 
+  align-items: center;
   position: relative;
 }
-
 
 .arrow-stack {
   display: flex; // arrows placed on top of each other
@@ -128,9 +138,12 @@ h1, h2, h3, h4, h5, h6 {@include gradient-text;}
   align-items: inherit;
 }
 
-
 @keyframes bounce {
-  0%, 20%, 50%, 80%, 100% {
+  0%,
+  20%,
+  50%,
+  80%,
+  100% {
     transform: translateY(0);
   }
   40% {
@@ -142,69 +155,72 @@ h1, h2, h3, h4, h5, h6 {@include gradient-text;}
 }
 //testing different arrow up animation
 @keyframes arrow-small {
-  0%, 20%, 50%, 80%, 100%
-  {
+  0%,
+  20%,
+  50%,
+  80%,
+  100% {
     transform: scale(1);
   }
   40% {
-    transform: translateY(-10px);}
-    50% {
-      transform: scale(0.5) translateY(-5px);
-    }
-    100% {
-      transform: scale(1);
-    }
+    transform: translateY(-10px);
   }
-  
-  .bounce {
-    animation: bounce 0.6s ease-in-out;
+  50% {
+    transform: scale(0.5) translateY(-5px);
   }
-  .arrow-small {
-    animation: arrow-small 0.3s;
-    transform-origin: center;
+  100% {
+    transform: scale(1);
   }
-  
-  /* Outlined Duplicate Animation */
-  .arrow-outline {
-    
-    animation: outline-expand 300ms ease-out;
-    
-    transform-origin: center;
+}
+
+.bounce {
+  animation: bounce 0.6s ease-in-out;
+}
+.arrow-small {
+  animation: arrow-small 0.3s;
+  transform-origin: center;
+}
+
+/* Outlined Duplicate Animation */
+.arrow-outline {
+  animation: outline-expand 300ms ease-out;
+
+  transform-origin: center;
+}
+
+@keyframes outline-expand {
+  0% {
+    transform: scale(1);
+    opacity: 0;
   }
-  
-  @keyframes outline-expand {
-    0% {
-      transform: scale(1);
-      opacity: 0.0;
-    }
-    100% {
-      transform: scale(2);
-      opacity: 0.15;
-    }
+  100% {
+    transform: scale(2);
+    opacity: 0.15;
   }
-  
-  .smallscreenvideo {
-    max-width: 95%;
-    max-height: 60vh;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    position: relative;
-    z-index: 1; //Keep the video above video-placeholder
+}
+
+.smallscreenvideo {
+  max-width: 95%;
+  max-height: 60vh;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  position: relative;
+  z-index: 1; //Keep the video above video-placeholder
 }
 
 //placeholder insures smallscreenvideo doesn't flicker upon toggleing between index
 .video-placeholder {
-    width: 100%;
-    min-height: 47vh;
-    display: flex; 
-    // background-color: #EB66A2;
-    align-items: center; 
-    justify-content: center; 
-    border-radius: 8px; 
-    position: relative; 
-    z-index: 0; 
+  width: 100%;
+  min-height: 47vh;
+  display: flex;
+  // background-color: #EB66A2;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  position: relative;
+  z-index: 0;
 }
-  
+
 .right-column {
   position: relative;
   top: 5%;
@@ -222,18 +238,10 @@ h1, h2, h3, h4, h5, h6 {@include gradient-text;}
   text-align: left; // Centers the text within the video-info div
 }
 
-
 .video-info p {
   margin: 1 0;
   padding-bottom: 5%;
 }
-
-
-
-
-
-
-
 
 // Container positioning modifiers
 .btn-container-main-menu {
@@ -248,7 +256,6 @@ h1, h2, h3, h4, h5, h6 {@include gradient-text;}
     width: 100%;
     height: 100%;
   }
-  
 }
 .btn-container-about-choreo {
   position: absolute;
@@ -262,7 +269,6 @@ h1, h2, h3, h4, h5, h6 {@include gradient-text;}
     width: 100%;
     height: 100%;
   }
-  
 }
 
 //Styling for about_choreo pages
@@ -277,7 +283,6 @@ h1, h2, h3, h4, h5, h6 {@include gradient-text;}
   // position: relative;
 }
 
-
 .svg-arrow-in-about-top {
   position: absolute;
   width: 3rem;
@@ -286,8 +291,6 @@ h1, h2, h3, h4, h5, h6 {@include gradient-text;}
   margin: 5%, 0;
   z-index: 2;
   top: 7%;
-
-  
 }
 
 .svg-arrow-in-about-bottom {
@@ -298,16 +301,13 @@ h1, h2, h3, h4, h5, h6 {@include gradient-text;}
   z-index: 2;
   margin: 5%, 0;
   bottom: 7%;
-
 }
-
 
 /* Webkit-specific style to hide scrollbar */
 .about-choreo-container::-webkit-scrollbar {
-  width: 0px;  /* Hides the scrollbar */
+  width: 0px; /* Hides the scrollbar */
   height: 0px;
 }
-
 
 .info-section-container {
   display: flex;
@@ -318,10 +318,9 @@ h1, h2, h3, h4, h5, h6 {@include gradient-text;}
   margin: 2rem 0;
   padding: 1rem; /* Optional padding for inner spacing */
   border-radius: 8px;
-  border-color: #EB66A2;
-  border-width: 2px; 
+  border-color: #eb66a2;
+  border-width: 2px;
   border-style: solid;
-
 }
 
 .info-section-container img {
@@ -361,8 +360,8 @@ h1, h2, h3, h4, h5, h6 {@include gradient-text;}
 .stat-bar-border {
   flex-grow: 1;
   height: 20px;
-  border-color: #EB66A2;
-  border-width: 2px; 
+  border-color: #eb66a2;
+  border-width: 2px;
   border-style: solid;
   border-radius: 4px;
   overflow: hidden;
@@ -370,15 +369,18 @@ h1, h2, h3, h4, h5, h6 {@include gradient-text;}
 
 .stat-bar-fill {
   height: 100%;
-  background-image: linear-gradient(to right, #EB66A2, #FC7800, #FCE837);
+  background-image: linear-gradient(to right, #eb66a2, #fc7800, #fce837);
   transition: width;
   animation: fill-bar 1.3s ease;
 }
 @keyframes fill-bar {
-  0% { width: 0%; }
-  100% {width: var(--stat-percentage); }
+  0% {
+    width: 0%;
+  }
+  100% {
+    width: var(--stat-percentage);
+  }
 }
-
 
 .stat-value {
   min-width: 24px;
@@ -404,20 +406,50 @@ h1, h2, h3, h4, h5, h6 {@include gradient-text;}
 
 .main_menu-container {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
-  height: 100vh;
-  padding: 0 5%;
+  gap: 2rem;
+  min-height: 100vh;
+  padding: 2rem;
+  box-sizing: border-box;
+}
+
+
+.main-panel {
+  width: min(280px, 40vw);
+  min-height: 200px;
+  padding: 0;
+  border: 2px solid $teal;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+
+//Buttons used in main_page.rs for "Dancers" and "Choreographies"
+.main-action-button {
+  width: 100%;
+  height: 100%;
+  min-height: 200px;
+  border: 0;
+  background: transparent;
+  color: $teal;
+  font: inherit;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 1.5rem;
 }
 
 .video-wrapper {
   flex: 0 0 50%;
   display: flex;
   flex-direction: column;
-  align-items: center; 
+  align-items: center;
   position: relative;
 }
-
 
 .arrow-stack {
   display: flex; // arrows placed on top of each other
@@ -447,9 +479,12 @@ h1, h2, h3, h4, h5, h6 {@include gradient-text;}
   align-items: inherit;
 }
 
-
 @keyframes bounce {
-  0%, 20%, 50%, 80%, 100% {
+  0%,
+  20%,
+  50%,
+  80%,
+  100% {
     transform: translateY(0);
   }
   40% {
@@ -461,69 +496,72 @@ h1, h2, h3, h4, h5, h6 {@include gradient-text;}
 }
 //testing different arrow up animation
 @keyframes arrow-small {
-  0%, 20%, 50%, 80%, 100%
-  {
+  0%,
+  20%,
+  50%,
+  80%,
+  100% {
     transform: scale(1);
   }
   40% {
-    transform: translateY(-10px);}
-    50% {
-      transform: scale(0.5) translateY(-5px);
-    }
-    100% {
-      transform: scale(1);
-    }
+    transform: translateY(-10px);
   }
-  
-  .bounce {
-    animation: bounce 0.6s ease-in-out;
+  50% {
+    transform: scale(0.5) translateY(-5px);
   }
-  .arrow-small {
-    animation: arrow-small 0.3s;
-    transform-origin: center;
+  100% {
+    transform: scale(1);
   }
-  
-  /* Outlined Duplicate Animation */
-  .arrow-outline {
-    
-    animation: outline-expand 300ms ease-out;
-    
-    transform-origin: center;
+}
+
+.bounce {
+  animation: bounce 0.6s ease-in-out;
+}
+.arrow-small {
+  animation: arrow-small 0.3s;
+  transform-origin: center;
+}
+
+/* Outlined Duplicate Animation */
+.arrow-outline {
+  animation: outline-expand 300ms ease-out;
+
+  transform-origin: center;
+}
+
+@keyframes outline-expand {
+  0% {
+    transform: scale(1);
+    opacity: 0;
   }
-  
-  @keyframes outline-expand {
-    0% {
-      transform: scale(1);
-      opacity: 0.0;
-    }
-    100% {
-      transform: scale(2);
-      opacity: 0.15;
-    }
+  100% {
+    transform: scale(2);
+    opacity: 0.15;
   }
-  
-  .smallscreenvideo {
-    max-width: 95%;
-    max-height: 60vh;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    position: relative;
-    z-index: 1; //Keep the video above video-placeholder
+}
+
+.smallscreenvideo {
+  max-width: 95%;
+  max-height: 60vh;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  position: relative;
+  z-index: 1; //Keep the video above video-placeholder
 }
 
 //placeholder insures smallscreenvideo doesn't flicker upon toggleing between index
 .video-placeholder {
-    width: 100%;
-    min-height: 47vh;
-    display: flex; 
-    // background-color: #EB66A2;
-    align-items: center; 
-    justify-content: center; 
-    border-radius: 8px; 
-    position: relative; 
-    z-index: 0; 
+  width: 100%;
+  min-height: 47vh;
+  display: flex;
+  // background-color: #EB66A2;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  position: relative;
+  z-index: 0;
 }
-  
+
 .right-column {
   position: relative;
   top: 5%;
@@ -541,14 +579,10 @@ h1, h2, h3, h4, h5, h6 {@include gradient-text;}
   text-align: left; // Centers the text within the video-info div
 }
 
-
 .video-info p {
   margin: 1 0;
   padding-bottom: 5%;
 }
-
-
-
 
 // positioning of logo_danceomatic in main menu page.
 .top-right-logo {
@@ -560,8 +594,6 @@ h1, h2, h3, h4, h5, h6 {@include gradient-text;}
   transform: (50%, 50%);
 }
 // end of danceOmatic logo animation and class
-
-
 
 // Container positioning modifiers
 .btn-container-main-menu {
@@ -576,7 +608,6 @@ h1, h2, h3, h4, h5, h6 {@include gradient-text;}
     width: 100%;
     height: 100%;
   }
-  
 }
 .btn-container-about-choreo {
   position: absolute;
@@ -590,7 +621,6 @@ h1, h2, h3, h4, h5, h6 {@include gradient-text;}
     width: 100%;
     height: 100%;
   }
-  
 }
 
 //Styling for about_choreo pages
@@ -605,7 +635,6 @@ h1, h2, h3, h4, h5, h6 {@include gradient-text;}
   // position: relative;
 }
 
-
 .svg-arrow-in-about-top {
   position: absolute;
   width: 3rem;
@@ -614,8 +643,6 @@ h1, h2, h3, h4, h5, h6 {@include gradient-text;}
   margin: 5%, 0;
   z-index: 2;
   top: 7%;
-
-  
 }
 
 .svg-arrow-in-about-bottom {
@@ -626,16 +653,13 @@ h1, h2, h3, h4, h5, h6 {@include gradient-text;}
   z-index: 2;
   margin: 5%, 0;
   bottom: 7%;
-
 }
-
 
 /* Webkit-specific style to hide scrollbar */
 .about-choreo-container::-webkit-scrollbar {
-  width: 0px;  /* Hides the scrollbar */
+  width: 0px; /* Hides the scrollbar */
   height: 0px;
 }
-
 
 .info-section-container {
   display: flex;
@@ -646,10 +670,9 @@ h1, h2, h3, h4, h5, h6 {@include gradient-text;}
   margin: 2rem 0;
   padding: 1rem; /* Optional padding for inner spacing */
   border-radius: 8px;
-  border-color: #EB66A2;
-  border-width: 2px; 
+  border-color: #eb66a2;
+  border-width: 2px;
   border-style: solid;
-
 }
 
 .info-section-container img {
@@ -689,8 +712,8 @@ h1, h2, h3, h4, h5, h6 {@include gradient-text;}
 .stat-bar-border {
   flex-grow: 1;
   height: 20px;
-  border-color: #EB66A2;
-  border-width: 2px; 
+  border-color: #eb66a2;
+  border-width: 2px;
   border-style: solid;
   border-radius: 4px;
   overflow: hidden;
@@ -698,13 +721,15 @@ h1, h2, h3, h4, h5, h6 {@include gradient-text;}
 
 .stat-bar-fill {
   height: 100%;
-  background-image: linear-gradient(to right, #EB66A2, #FC7800, #FCE837);
+  background-image: linear-gradient(to right, #eb66a2, #fc7800, #fce837);
   transition: width;
   animation: fill-bar 1.3s ease;
 }
 @keyframes fill-bar {
-  0% { width: 0%; }
-  100% {width: var(--stat-percentage); }
+  0% {
+    width: 0%;
+  }
+  100% {
+    width: var(--stat-percentage);
+  }
 }
-
-

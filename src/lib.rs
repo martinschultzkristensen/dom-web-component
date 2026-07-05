@@ -1,5 +1,8 @@
 //lib.rs
 use pages::main_page::MainPage;
+use pages::dancer_page::DancerPage;
+use pages::choreo_page::ChoreoPage;
+
 use yew::prelude::*;
 use yew_router::prelude::*;
 
@@ -8,6 +11,10 @@ mod pages;
 pub enum Route {
     #[at("/")]
     MainPage,
+    #[at("/dancers")]
+    DancerPage,
+    #[at("/choreographies")]
+    ChoreographyPage
 }
 
 #[function_component(DanceOmaticWebComponent)]
@@ -23,5 +30,7 @@ pub fn dom_web_component() -> Html {
 fn switch(routes: Route) -> Html {
     match routes {
         Route::MainPage => html! { <MainPage /> },
+        Route::DancerPage => html! { <DancerPage /> },
+        Route::ChoreographyPage => html! { <ChoreoPage /> },
     }
 }
