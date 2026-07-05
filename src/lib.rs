@@ -1,7 +1,7 @@
 //lib.rs
-use pages::main_page::MainPage;
-use pages::dancer_page::DancerPage;
 use pages::choreo_page::ChoreoPage;
+use pages::dancer_page::DancerPage;
+use pages::main_page::MainPage;
 
 use yew::prelude::*;
 use yew_router::prelude::*;
@@ -15,12 +15,11 @@ pub enum Route {
     #[at("/dancers")]
     DancerPage,
     #[at("/choreographies")]
-    ChoreoPage
+    ChoreoPage,
 }
 
 #[function_component(DanceOmaticWebComponent)]
 pub fn dom_web_component() -> Html {
-
     html! {
         <BrowserRouter>
             <Switch<Route> render={Callback::from(switch)} />

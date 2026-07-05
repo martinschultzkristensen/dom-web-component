@@ -75,9 +75,9 @@ pub fn dancer_card(props: &DancerCardProps) -> Html {
                     let img_path = img_path.clone();
                     async move {
                         let js_args =
-                            wasm_bindgen::JsValue::from_str(&serde_json::to_string(&json!({ "path": img_path })).unwrap());
+                            serde_wasm_bindgen::to_value(&json!({ "path": img_path })).unwrap();
                         let result = invoke("resolve_media_path", js_args).await;
-                        match  wasm_bindgen::JsValue::try_from_js_value::<String>(result) {
+                        match serde_wasm_bindgen::from_value::<String>(result) {
                             Ok(resolved) => img_src.set(resolved),
                             Err(_) => img_src.set(img_path),
                         }
