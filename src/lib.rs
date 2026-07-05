@@ -14,7 +14,7 @@ pub enum Route {
     #[at("/dancers")]
     DancerPage,
     #[at("/choreographies")]
-    ChoreographyPage
+    ChoreoPage
 }
 
 #[function_component(DanceOmaticWebComponent)]
@@ -31,6 +31,6 @@ fn switch(routes: Route) -> Html {
     match routes {
         Route::MainPage => html! { <MainPage /> },
         Route::DancerPage => html! { <DancerPage /> },
-        Route::ChoreographyPage => html! { <ChoreoPage /> },
+        Route::ChoreoPage => html! { <ChoreoPage /> },
     }
 }

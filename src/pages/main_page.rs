@@ -1,24 +1,29 @@
 //src/pages/main_page.rs
 use yew::prelude::*;
-use yew_router::prelude::{Navigator, use_navigator};
+use yew_router::prelude::{use_navigator};
+use crate::Route;
 
 #[function_component(MainPage)]
 pub fn main_page() -> Html {
     let navigator = use_navigator().unwrap();
 
-    // let press_x_for_main = Callback::from(move |event: KeyboardEvent| {
-    //     if event.key() == "x" {
-    //         navigator.push(&Route::dancer_page);
-    //     }
-    // });
+    let go_to_dancers = {
+        let navigator = navigator.clone();
+        Callback::from(move |_| navigator.push(&Route::DancerPage))
+    };
 
-    html! {
+    let go_to_choreo = {
+        let navigator = navigator.clone();
+        Callback::from(move |_| navigator.push(&Route::ChoreoPage))
+    };
+
+     html! {
         <div class="main_menu-container">
             <div class="main-panel">
-                <button class="main-action-button">{ "Dancers" }</button>
+                <button class="main-action-button" onclick={go_to_dancers}>{ "Dancers" }</button>
             </div>
             <div class="main-panel">
-                <button class="main-action-button">{ "Choreographies" }</button>
+                <button class="main-action-button" onclick={go_to_choreo}>{ "Choreographies" }</button>
             </div>
         </div>
     }

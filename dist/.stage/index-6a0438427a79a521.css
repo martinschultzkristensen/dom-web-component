@@ -1,0 +1,682 @@
+@font-face {
+  font-family: "PressStart2P-vaV7";
+  src: url("static/PressStart2P-vaV7.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+@font-face {
+  font-family: "PressStart2P-vaV7";
+  src: url("static/PressStart2P-vaV7.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background-color: rgb(24, 24, 27);
+  font-family: "PressStart2P-vaV7";
+  color: #fce837;
+  height: 100%;
+  overflow: hidden;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  background-image: linear-gradient(to bottom, #d7dcdf, #fce837, #fc7800);
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  background-image: linear-gradient(to bottom, #d7dcdf, #fce837, #fc7800);
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+.page {
+  min-height: 100vh;
+  min-width: 100vw;
+  line-height: 1.5;
+  tab-size: 4;
+  font-feature-settings: normal;
+  margin: 0;
+  line-height: inherit;
+  min-height: 100vh;
+  min-width: 100vw;
+  line-height: 1.5;
+  tab-size: 4;
+  font-feature-settings: normal;
+  margin: 0;
+  line-height: inherit;
+}
+
+.arcadefont {
+  font-family: "PressStart2P-vaV7", sans-serif;
+  font-size: 24px;
+  color: #fce837;
+  margin: 0 2%;
+  margin-bottom: 5%;
+}
+
+.fullscreenvideo {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  object-fit: cover;
+}
+
+.main_menu-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 100vh;
+  padding: 0 5%;
+}
+
+.video-wrapper {
+  flex: 0 0 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.arrow-stack {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+
+.base-arrow {
+  z-index: 1; /* Ensure this arrow is on the bottom */
+}
+
+.arrow-stack object {
+  position: absolute; /* Stack arrows on top of each other */
+  top: inherit;
+  left: inherit;
+}
+
+.title-center {
+  text-align: center;
+  margin-bottom: 20px;
+  width: 100%;
+}
+
+.svg-arrow-in-main {
+  margin: 7% 0;
+  width: 10%;
+  align-items: inherit;
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-10px);
+  }
+  60% {
+    transform: translateY(-5px);
+  }
+}
+@keyframes arrow-small {
+  0%, 20%, 50%, 80%, 100% {
+    transform: scale(1);
+  }
+  40% {
+    transform: translateY(-10px);
+  }
+  50% {
+    transform: scale(0.5) translateY(-5px);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.bounce {
+  animation: bounce 0.6s ease-in-out;
+}
+
+.arrow-small {
+  animation: arrow-small 0.3s;
+  transform-origin: center;
+}
+
+/* Outlined Duplicate Animation */
+.arrow-outline {
+  animation: outline-expand 300ms ease-out;
+  transform-origin: center;
+}
+
+@keyframes outline-expand {
+  0% {
+    transform: scale(1);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0.15;
+  }
+}
+.smallscreenvideo {
+  max-width: 95%;
+  max-height: 60vh;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  position: relative;
+  z-index: 1;
+}
+
+.video-placeholder {
+  width: 100%;
+  min-height: 47vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  position: relative;
+  z-index: 0;
+}
+
+.right-column {
+  position: relative;
+  top: 5%;
+  left: 0px;
+  flex: 0 0 45%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  padding-left: 0px;
+}
+
+.video-info {
+  width: 100%;
+  text-align: left;
+}
+
+.video-info p {
+  margin: 1 0;
+  padding-bottom: 5%;
+}
+
+.btn-container-main-menu {
+  position: absolute;
+  bottom: 0%;
+  right: 20%;
+  width: 100%;
+  height: 100%;
+}
+.btn-container-main-menu .btn-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.btn-container-about-choreo {
+  position: absolute;
+  bottom: 0%;
+  right: 10%;
+  width: 100%;
+  height: 100%;
+}
+.btn-container-about-choreo .btn-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.about-choreo-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 3rem 5rem;
+  height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.svg-arrow-in-about-top {
+  position: absolute;
+  width: 3rem;
+  height: auto;
+  left: 3%;
+  margin: 5%, 0;
+  z-index: 2;
+  top: 7%;
+}
+
+.svg-arrow-in-about-bottom {
+  position: absolute;
+  width: 3rem;
+  height: auto;
+  left: 3%;
+  z-index: 2;
+  margin: 5%, 0;
+  bottom: 7%;
+}
+
+/* Webkit-specific style to hide scrollbar */
+.about-choreo-container::-webkit-scrollbar {
+  width: 0px; /* Hides the scrollbar */
+  height: 0px;
+}
+
+.info-section-container {
+  display: flex;
+  flex-direction: row; /* Arrange items horizontally */
+  align-items: center; /* Align image and text vertically */
+  width: 100%;
+  max-width: 800px;
+  margin: 2rem 0;
+  padding: 1rem; /* Optional padding for inner spacing */
+  border-radius: 8px;
+  border-color: #eb66a2;
+  border-width: 2px;
+  border-style: solid;
+}
+
+.info-section-container img {
+  width: 200px; /* Set to desired size */
+  height: auto;
+  margin-right: 1rem; /* Space between image and text */
+  border-radius: 4px;
+  object-fit: cover;
+}
+
+.info-section-container .description {
+  flex: 1;
+}
+
+.name-and-stats-container {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.75rem;
+  flex-grow: 1;
+}
+
+.stat-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-grow: 1;
+}
+
+.stat-label {
+  font-size: 1rem;
+  width: 11rem;
+}
+
+.stat-bar-border {
+  flex-grow: 1;
+  height: 20px;
+  border-color: #eb66a2;
+  border-width: 2px;
+  border-style: solid;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.stat-bar-fill {
+  height: 100%;
+  background-image: linear-gradient(to right, #eb66a2, #fc7800, #fce837);
+  transition: width;
+  animation: fill-bar 1.3s ease;
+}
+
+@keyframes fill-bar {
+  0% {
+    width: 0%;
+  }
+  100% {
+    width: var(--stat-percentage);
+  }
+}
+.stat-value {
+  min-width: 24px;
+  text-align: right;
+  font-size: 0.875rem;
+}
+
+.arcadefont {
+  font-family: "PressStart2P-vaV7", sans-serif;
+  font-size: 24px;
+  color: #fce837;
+  margin: 0 2%;
+  margin-bottom: 5%;
+}
+
+.fullscreenvideo {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  object-fit: cover;
+}
+
+.main_menu-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 2rem;
+  min-height: 100vh;
+  padding: 2rem;
+  box-sizing: border-box;
+}
+
+.main-panel {
+  width: min(280px, 40vw);
+  min-height: 200px;
+  padding: 0;
+  border: 2px solid #fce837;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+
+.main-action-button {
+  width: 100%;
+  height: 100%;
+  min-height: 200px;
+  border: 0;
+  background: transparent;
+  color: #fce837;
+  font: inherit;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 1.5rem;
+}
+
+.video-wrapper {
+  flex: 0 0 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.arrow-stack {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+
+.base-arrow {
+  z-index: 1; /* Ensure this arrow is on the bottom */
+}
+
+.arrow-stack object {
+  position: absolute; /* Stack arrows on top of each other */
+  top: inherit;
+  left: inherit;
+}
+
+.title-center {
+  text-align: center;
+  margin-bottom: 20px;
+  width: 100%;
+}
+
+.svg-arrow-in-main {
+  margin: 7% 0;
+  width: 10%;
+  align-items: inherit;
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-10px);
+  }
+  60% {
+    transform: translateY(-5px);
+  }
+}
+@keyframes arrow-small {
+  0%, 20%, 50%, 80%, 100% {
+    transform: scale(1);
+  }
+  40% {
+    transform: translateY(-10px);
+  }
+  50% {
+    transform: scale(0.5) translateY(-5px);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.bounce {
+  animation: bounce 0.6s ease-in-out;
+}
+
+.arrow-small {
+  animation: arrow-small 0.3s;
+  transform-origin: center;
+}
+
+/* Outlined Duplicate Animation */
+.arrow-outline {
+  animation: outline-expand 300ms ease-out;
+  transform-origin: center;
+}
+
+@keyframes outline-expand {
+  0% {
+    transform: scale(1);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0.15;
+  }
+}
+.smallscreenvideo {
+  max-width: 95%;
+  max-height: 60vh;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  position: relative;
+  z-index: 1;
+}
+
+.video-placeholder {
+  width: 100%;
+  min-height: 47vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  position: relative;
+  z-index: 0;
+}
+
+.right-column {
+  position: relative;
+  top: 5%;
+  left: 0px;
+  flex: 0 0 45%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  padding-left: 0px;
+}
+
+.video-info {
+  width: 100%;
+  text-align: left;
+}
+
+.video-info p {
+  margin: 1 0;
+  padding-bottom: 5%;
+}
+
+.top-right-logo {
+  position: absolute;
+  top: 1%;
+  right: 15%;
+  width: 20%; /* Adjust as needed */
+  height: auto; /* Maintain aspect ratio */
+  transform: 50%, 50%;
+}
+
+.btn-container-main-menu {
+  position: absolute;
+  bottom: 0%;
+  right: 20%;
+  width: 100%;
+  height: 100%;
+}
+.btn-container-main-menu .btn-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.btn-container-about-choreo {
+  position: absolute;
+  bottom: 0%;
+  right: 10%;
+  width: 100%;
+  height: 100%;
+}
+.btn-container-about-choreo .btn-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.about-choreo-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 3rem 5rem;
+  height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.svg-arrow-in-about-top {
+  position: absolute;
+  width: 3rem;
+  height: auto;
+  left: 3%;
+  margin: 5%, 0;
+  z-index: 2;
+  top: 7%;
+}
+
+.svg-arrow-in-about-bottom {
+  position: absolute;
+  width: 3rem;
+  height: auto;
+  left: 3%;
+  z-index: 2;
+  margin: 5%, 0;
+  bottom: 7%;
+}
+
+/* Webkit-specific style to hide scrollbar */
+.about-choreo-container::-webkit-scrollbar {
+  width: 0px; /* Hides the scrollbar */
+  height: 0px;
+}
+
+.info-section-container {
+  display: flex;
+  flex-direction: row; /* Arrange items horizontally */
+  align-items: center; /* Align image and text vertically */
+  width: 100%;
+  max-width: 800px;
+  margin: 2rem 0;
+  padding: 1rem; /* Optional padding for inner spacing */
+  border-radius: 8px;
+  border-color: #eb66a2;
+  border-width: 2px;
+  border-style: solid;
+}
+
+.info-section-container img {
+  width: 200px; /* Set to desired size */
+  height: auto;
+  margin-right: 1rem; /* Space between image and text */
+  border-radius: 4px;
+  object-fit: cover;
+}
+
+.info-section-container .description {
+  flex: 1;
+}
+
+.name-and-stats-container {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.75rem;
+  flex-grow: 1;
+}
+
+.stat-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-grow: 1;
+}
+
+.stat-label {
+  font-size: 1rem;
+  width: 11rem;
+}
+
+.stat-bar-border {
+  flex-grow: 1;
+  height: 20px;
+  border-color: #eb66a2;
+  border-width: 2px;
+  border-style: solid;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.stat-bar-fill {
+  height: 100%;
+  background-image: linear-gradient(to right, #eb66a2, #fc7800, #fce837);
+  transition: width;
+  animation: fill-bar 1.3s ease;
+}
+
+@keyframes fill-bar {
+  0% {
+    width: 0%;
+  }
+  100% {
+    width: var(--stat-percentage);
+  }
+}
+
+/*# sourceMappingURL=data:application/json;charset=utf-8,%7B%22version%22:3,%22sourceRoot%22:%22%22,%22sources%22:%5B%22../../index.scss%22%5D,%22names%22:%5B%5D,%22mappings%22:%22AAAA;EACE;EACA;EACA;EACA;;AAGF;EACE;EACA;EACA;EACA;;AAuBF;AAAA;EAEE;EACA;EACA;EACA;EACA,OAvBK;EAwBL;EACA;;;AAGF;AAAA;AAAA;AAAA;AAAA;AAAA;EAhBE;EACA;EACA;;;AAsBF;AAAA;AAAA;AAAA;AAAA;AAAA;EAxBE;EACA;EACA;;;AA+BF;EACE;EACA;EACA;EACA;EACA;EACA;EACA;EACA;EACA;EACA;EACA;EACA;EACA;EACA;;;AAGF;EACE;EACA;EACA,OAjEK;EAkEL;EACA;;;AAGF;EACE;EACA;EACA;EACA;EACA;EACA;;;AAGF;EACE;EACA;EACA;EACA;EACA;;;AAGF;EACE;EACA;EACA;EACA;EACA;;;AAGF;EACE;EACA;EACA;EACA;;;AAEF;EACE;;;AAGF;EACE;EACA;EACA;;;AAGF;EACE;EACA;EACA;;;AAGF;EACE;EACA;EACA;;;AAGF;EACE;IAKE;;EAEF;IACE;;EAEF;IACE;;;AAIJ;EACE;IAKE;;EAEF;IACE;;EAEF;IACE;;EAEF;IACE;;;AAIJ;EACE;;;AAEF;EACE;EACA;;;AAGF;AACA;EACE;EAEA;;;AAGF;EACE;IACE;IACA;;EAEF;IACE;IACA;;;AAIJ;EACE;EACA;EACA;EACA;EACA;EACA;;;AAIF;EACE;EACA;EACA;EAEA;EACA;EACA;EACA;EACA;;;AAGF;EACE;EACA;EACA;EACA;EACA;EACA;EACA;EACA;EACA;;;AAGF;EACE;EACA;;;AAGF;EACE;EACA;;;AAIF;EACE;EACA;EACA;EACA;EACA;;AAEA;EACE;EACA;EACA;;;AAGJ;EACE;EACA;EACA;EACA;EACA;;AAEA;EACE;EACA;EACA;;;AAKJ;EACE;EACA;EACA;EACA;EACA;EACA;EACA;;;AAIF;EACE;EACA;EACA;EACA;EACA;EACA;EACA;;;AAGF;EACE;EACA;EACA;EACA;EACA;EACA;EACA;;;AAGF;AACA;EACE;EACA;;;AAGF;EACE;EACA;EACA;EACA;EACA;EACA;EACA;EACA;EACA;EACA;EACA;;;AAGF;EACE;EACA;EACA;EACA;EACA;;;AAGF;EACE;;;AAGF;EACE;EACA;EACA;EACA;EACA;;;AAKF;EACE;EACA;EACA;EACA;;;AAGF;EACE;EACA;;;AAGF;EACE;EACA;EACA;EACA;EACA;EACA;EACA;;;AAGF;EACE;EACA;EACA;EACA;;;AAEF;EACE;IACE;;EAEF;IACE;;;AAIJ;EACE;EACA;EACA;;;AAEF;EACE;EACA;EACA,OAvXK;EAwXL;EACA;;;AAGF;EACE;EACA;EACA;EACA;EACA;EACA;;;AAGF;EACE;EACA;EACA;EACA;EACA;EACA;EACA;;;AAIF;EACE;EACA;EACA;EACA;EACA;EACA;EACA;EACA;;;AAIF;EACE;EACA;EACA;EACA;EACA;EACA,OAlaK;EAmaL;EACA;EACA;EACA;EACA;EACA;EACA;;;AAGF;EACE;EACA;EACA;EACA;EACA;;;AAGF;EACE;EACA;EACA;EACA;;;AAEF;EACE;;;AAGF;EACE;EACA;EACA;;;AAGF;EACE;EACA;EACA;;;AAGF;EACE;EACA;EACA;;;AAGF;EACE;IAKE;;EAEF;IACE;;EAEF;IACE;;;AAIJ;EACE;IAKE;;EAEF;IACE;;EAEF;IACE;;EAEF;IACE;;;AAIJ;EACE;;;AAEF;EACE;EACA;;;AAGF;AACA;EACE;EAEA;;;AAGF;EACE;IACE;IACA;;EAEF;IACE;IACA;;;AAIJ;EACE;EACA;EACA;EACA;EACA;EACA;;;AAIF;EACE;EACA;EACA;EAEA;EACA;EACA;EACA;EACA;;;AAGF;EACE;EACA;EACA;EACA;EACA;EACA;EACA;EACA;EACA;;;AAGF;EACE;EACA;;;AAGF;EACE;EACA;;;AAIF;EACE;EACA;EACA;EACA;EACA;EACA;;;AAKF;EACE;EACA;EACA;EACA;EACA;;AAEA;EACE;EACA;EACA;;;AAGJ;EACE;EACA;EACA;EACA;EACA;;AAEA;EACE;EACA;EACA;;;AAKJ;EACE;EACA;EACA;EACA;EACA;EACA;EACA;;;AAIF;EACE;EACA;EACA;EACA;EACA;EACA;EACA;;;AAGF;EACE;EACA;EACA;EACA;EACA;EACA;EACA;;;AAGF;AACA;EACE;EACA;;;AAGF;EACE;EACA;EACA;EACA;EACA;EACA;EACA;EACA;EACA;EACA;EACA;;;AAGF;EACE;EACA;EACA;EACA;EACA;;;AAGF;EACE;;;AAGF;EACE;EACA;EACA;EACA;EACA;;;AAKF;EACE;EACA;EACA;EACA;;;AAGF;EACE;EACA;;;AAGF;EACE;EACA;EACA;EACA;EACA;EACA;EACA;;;AAGF;EACE;EACA;EACA;EACA;;;AAEF;EACE;IACE;;EAEF;IACE%22,%22file%22:%22index.css%22%7D */
