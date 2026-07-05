@@ -6,6 +6,7 @@ use pages::choreo_page::ChoreoPage;
 use yew::prelude::*;
 use yew_router::prelude::*;
 
+mod components;
 mod pages;
 #[derive(Clone, Routable, Debug, PartialEq)]
 pub enum Route {
