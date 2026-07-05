@@ -1,5 +1,4 @@
-use yew::prelude::*;
-use yew_app::DanceOmaticWebComponent;
+use::dom_web_component;
 
 
 fn main() {
