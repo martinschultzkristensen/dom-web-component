@@ -1,11 +1,22 @@
-
+use yew::prelude::*;
+use yew_router::prelude::{use_navigator, Navigator};
 
 #[function_component(MainPage)]
 pub fn main_page() -> Html {
+    let counter = use_state(|| 0);
+    let onclick = {
+        let counter = counter.clone();
+        move |_| {
+            let value = *counter + 1;
+            counter.set(value);
+        }
+    };
+
     html! {
         <div>
-            <h1>{ "Main Page" }</h1>
-            <p>{ "Welcome to the main page of the Yew application!" }</p>
+        <p>{ "THIS PAGES IS CALLED FROM MAIN PAGES!!!!" }</p>
+            <button {onclick}>{ "+1" }</button>
+            <p>{ *counter }</p>
         </div>
     }
 }

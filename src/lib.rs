@@ -1,9 +1,9 @@
 //lib.rs
-use components::pages::main_page::MainPage;
+use pages::main_page::MainPage;
 use yew::{functional, prelude::*};
 use yew_router::prelude::*;
 
-mod components;
+mod pages;
 #[derive(Clone, Routable, Debug, PartialEq)]
 pub enum Route {
     #[at("/main_page")]
@@ -11,9 +11,16 @@ pub enum Route {
 }
 
 #[function_component(DanceOmaticWebComponent)]
-pub fn dance_o_matic() -> Html {
+pub fn dom_web_component() -> Html {
+let counter = use_state(|| 0);
+    let onclick = {
+        let counter = counter.clone();
+        move |_| {
+            let value = *counter + 1;
+            counter.set(value);
+        }
+    };
 
-}
 
 
 !html {
