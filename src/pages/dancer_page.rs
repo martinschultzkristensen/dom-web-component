@@ -157,10 +157,11 @@ pub fn dancer_page() -> Html {
                         />
 
                         <br/>
-
+                    <div class="add-dancer-panel">
                         <button class="main-action-button" onclick={on_add_dancer}>
                             { "Add Dancer" }
                         </button>
+                    </div>
                     </div>
                 </div>
 
