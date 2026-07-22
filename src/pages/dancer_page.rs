@@ -1,8 +1,8 @@
 //src/pages/dancer_page.rs
 use crate::components::atoms::dancer::{DancerCard, DancerData};
-use web_sys::{Event, FileReader, HtmlInputElement};
-use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast;
+use wasm_bindgen::prelude::Closure;
+use web_sys::{Event, FileReader, HtmlInputElement};
 use yew::prelude::*;
 
 #[function_component(DancerPage)]
@@ -12,6 +12,7 @@ pub fn dancer_page() -> Html {
 
     // Form field state
     let name = use_state(String::new);
+    let name_error = use_state(String::new);
     let strength = use_state(|| 5u8);
     let flexibility = use_state(|| 5u8);
     let image_data = use_state(|| Option::<String>::None);
@@ -19,9 +20,11 @@ pub fn dancer_page() -> Html {
     // --- Handlers ---
     let on_name_input = {
         let name = name.clone();
+        let name_error = name_error.clone();
         Callback::from(move |e: InputEvent| {
             if let Some(input) = e.target_dyn_into::<HtmlInputElement>() {
                 name.set(input.value());
+                name_error.set(String::new());
             }
         })
     };
@@ -66,7 +69,8 @@ pub fn dancer_page() -> Html {
                                     image_data.set(Some(data_url));
                                 }
                             }
-                        }) as Box<dyn FnMut(Event)>);
+                        })
+                            as Box<dyn FnMut(Event)>);
 
                         reader.set_onload(Some(onload.as_ref().unchecked_ref()));
                         onload.forget();
@@ -77,18 +81,23 @@ pub fn dancer_page() -> Html {
         })
     };
 
+    let dancer_name_placeholder = "Dancer Name";
     let on_add_dancer = {
         let dancers = dancers.clone();
         let name = name.clone();
+        let name_error = name_error.clone();
         let strength = strength.clone();
         let flexibility = flexibility.clone();
         let image_data = image_data.clone();
 
         Callback::from(move |_| {
             // Require at least a name before adding
-            if name.is_empty() {
+            if (*name).trim().is_empty() {
+                name_error.set(format!("enter {}", dancer_name_placeholder));
                 return;
             }
+
+            name_error.set(String::new());
 
             let new_dancer = DancerData {
                 image: (*image_data).clone().unwrap_or_default(),
@@ -129,7 +138,7 @@ pub fn dancer_page() -> Html {
 
                         <input
                             type="text"
-                            placeholder="Dancer name"
+                            placeholder={dancer_name_placeholder}
                             value={(*name).clone()}
                             oninput={on_name_input}
                         />
@@ -157,12 +166,17 @@ pub fn dancer_page() -> Html {
                         />
 
                         <br/>
+                    if !(*name_error).is_empty() {
+                            <p class="error-message">{ (*name_error).clone() }</p>
+                        }
                     <div class="add-dancer-panel">
                         <button class="main-action-button" onclick={on_add_dancer}>
                             { "Add Dancer" }
                         </button>
+
+                        
                     </div>
-                    </div>
+                </div>
                 </div>
 
                 <h2>{ "Dancers" }</h2>

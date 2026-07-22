@@ -421,7 +421,7 @@ h6 {
   padding: 0;
   border: 2px solid $teal;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(252, 232, 232, 0.05);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
   overflow: hidden;
 }
@@ -436,6 +436,31 @@ h6 {
   background: rgba(255, 255, 255, 0.05);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
   overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.error-message {
+  margin: 2;
+  color: #ff7b7b;
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: sans-serif;
+  align-items: left;
+  animation: error-message-fade 1.3s ease;
+}
+
+@keyframes error-message-fade {
+0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+  0% {
+    opacity: 0;
+  }
 }
 
 //Buttons used in main_page.rs for "Dancers" and "Choreographies"
