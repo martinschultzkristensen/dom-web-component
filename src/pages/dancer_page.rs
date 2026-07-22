@@ -5,10 +5,36 @@ use wasm_bindgen::prelude::Closure;
 use web_sys::{Event, FileReader, HtmlInputElement};
 use yew::prelude::*;
 
+const DANCERS_STORAGE_KEY: &str = "dancers";
+
+fn load_dancers() -> Vec<DancerData> {
+    web_sys::window()
+        .and_then(|w| w.local_storage().ok().flatten())
+        .and_then(|storage| storage.get_item(DANCERS_STORAGE_KEY).ok().flatten())
+        .and_then(|json| serde_json::from_str(&json).ok())
+        .unwrap_or_default()
+}
+
+fn save_dancers(dancers: &[DancerData]) {
+    if let Ok(json) = serde_json::to_string(dancers) {
+        if let Some(storage) = web_sys::window().and_then(|w| w.local_storage().ok().flatten()) {
+            let _ = storage.set_item(DANCERS_STORAGE_KEY, &json);
+        }
+    }
+}
+
 #[function_component(DancerPage)]
 pub fn dancer_page() -> Html {
-    // List of dancers added so far
-    let dancers = use_state(Vec::<DancerData>::new);
+    // List of dancers added so far, persisted to localStorage so it survives a refresh
+    let dancers = use_state(load_dancers);
+
+    {
+        let dancers = dancers.clone();
+        use_effect_with(dancers.clone(), move |dancers| {
+            save_dancers(&dancers);
+            || ()
+        });
+    }
 
     // Form field state
     let name = use_state(String::new);
@@ -181,9 +207,20 @@ pub fn dancer_page() -> Html {
 
                 <h2>{ "Dancers" }</h2>
                 {
-                    (*dancers).iter().map(|dancer| {
+                    (*dancers).iter().enumerate().map(|(idx, dancer)| {
+                        let on_image_update = {
+                            let dancers = dancers.clone();
+                            Callback::from(move |data_url: String| {
+                                let mut updated = (*dancers).clone();
+                                if let Some(d) = updated.get_mut(idx) {
+                                    d.image = data_url;
+                                }
+                                dancers.set(updated);
+                            })
+                        };
+
                         html! {
-                            <DancerCard dancer={dancer.clone()} />
+                            <DancerCard dancer={dancer.clone()} on_image_update={on_image_update} />
                         }
                     }).collect::<Html>()
                 }

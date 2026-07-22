@@ -1,8 +1,10 @@
 //components/atoms/dancer.rs
 //Purpose of code: Create a dancer struct which can be used in src/components/data/choreography_data.rs
+use serde::{Deserialize, Serialize};
 use serde_json::json;
-use wasm_bindgen::prelude::wasm_bindgen;
-use wasm_bindgen::JsValue;
+use wasm_bindgen::prelude::{wasm_bindgen, Closure};
+use wasm_bindgen::{JsCast, JsValue};
+use web_sys::{Event, FileReader, HtmlInputElement};
 use yew::prelude::*;
 
 #[wasm_bindgen]
@@ -10,7 +12,7 @@ extern "C" {
     #[wasm_bindgen(js_namespace = ["window", "__TAURI__", "core"], js_name = invoke)]
     async fn invoke(cmd: &str, args: JsValue) -> JsValue;
 }
-#[derive(Clone, PartialEq, Properties)]
+#[derive(Clone, PartialEq, Properties, Serialize, Deserialize)]
 pub struct DancerData {
     pub image: String,
     pub name: String,
@@ -53,6 +55,8 @@ fn stat_bar(props: &StatBarProps) -> Html {
 #[derive(Properties, PartialEq)]
 pub struct DancerCardProps {
     pub dancer: DancerData,
+    #[prop_or_default]
+    pub on_image_update: Callback<String>,
 }
 
 #[function_component(DancerCard)]
@@ -90,9 +94,64 @@ pub fn dancer_card(props: &DancerCardProps) -> Html {
         });
     }
 
+    let file_input_ref = use_node_ref();
+
+    let on_add_image_click = {
+        let file_input_ref = file_input_ref.clone();
+        Callback::from(move |_| {
+            if let Some(input) = file_input_ref.cast::<HtmlInputElement>() {
+                input.click();
+            }
+        })
+    };
+
+    let on_file_change = {
+        let img_src = img_src.clone();
+        let on_image_update = props.on_image_update.clone();
+        Callback::from(move |e: Event| {
+            if let Some(input) = e.target_dyn_into::<HtmlInputElement>() {
+                if let Some(file_list) = input.files() {
+                    if let Some(file) = file_list.get(0) {
+                        let reader = FileReader::new().unwrap();
+                        let reader_clone = reader.clone();
+                        let img_src = img_src.clone();
+                        let on_image_update = on_image_update.clone();
+
+                        let onload = Closure::wrap(Box::new(move |_event: Event| {
+                            if let Ok(result) = reader_clone.result() {
+                                if let Some(data_url) = result.as_string() {
+                                    img_src.set(data_url.clone());
+                                    on_image_update.emit(data_url);
+                                }
+                            }
+                        })
+                            as Box<dyn FnMut(Event)>);
+
+                        reader.set_onload(Some(onload.as_ref().unchecked_ref()));
+                        onload.forget();
+                        reader.read_as_data_url(&file).unwrap();
+                    }
+                }
+            }
+        })
+    };
+
     html! {
         <div class="info-section-container">
-            <img src={(*img_src).clone()} alt={format!("Image of {}", dancer.name)} />
+            if (*img_src).is_empty() {
+                <button class="main-action-button" onclick={on_add_image_click}>
+                    { "Add Image" }
+                </button>
+            } else {
+                <img src={(*img_src).clone()} alt={format!("Image of {}", dancer.name)} />
+            }
+            <input
+                type="file"
+                accept="image/*"
+                ref={file_input_ref}
+                style="display: none;"
+                onchange={on_file_change}
+            />
             <div class="name-and-stats-container">
             <p>{&dancer.name}</p>
                 <StatBar value={dancer.strength} label="strength" />
