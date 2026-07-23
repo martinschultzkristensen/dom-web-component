@@ -1,5 +1,5 @@
 //lib.rs
-use pages::choreo_page::ChoreoPage;
+use pages::choreography_page::ChoreographyPage;
 use pages::dancer_page::DancerPage;
 use pages::main_page::MainPage;
 
@@ -15,7 +15,7 @@ pub enum Route {
     #[at("/dancers")]
     DancerPage,
     #[at("/choreographies")]
-    ChoreoPage,
+    ChoreographyPage,
 }
 
 #[function_component(DanceOmaticWebComponent)]
@@ -31,6 +31,6 @@ fn switch(routes: Route) -> Html {
     match routes {
         Route::MainPage => html! { <MainPage /> },
         Route::DancerPage => html! { <DancerPage /> },
-        Route::ChoreoPage => html! { <ChoreoPage /> },
+        Route::ChoreographyPage => html! { <ChoreographyPage /> },
     }
 }

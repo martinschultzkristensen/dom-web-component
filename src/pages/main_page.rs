@@ -14,7 +14,7 @@ pub fn main_page() -> Html {
 
     let go_to_choreo = {
         let navigator = navigator.clone();
-        Callback::from(move |_| navigator.push(&Route::ChoreoPage))
+        Callback::from(move |_| navigator.push(&Route::ChoreographyPage))
     };
 
      html! {

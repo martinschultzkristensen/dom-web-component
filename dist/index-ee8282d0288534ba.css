@@ -4,41 +4,19 @@
   font-weight: normal;
   font-style: normal;
 }
-
 @font-face {
   font-family: "PressStart2P-vaV7";
   src: url("static/PressStart2P-vaV7.ttf") format("truetype");
   font-weight: normal;
   font-style: normal;
 }
-
-$shade-0: #fff !default;
-$shade-1: #d7dcdf !default;
-$shade-10: #2c3e50 !default;
-$teal: #fce837 !default;
-
-// Mixin for gradient text
-@mixin gradient-text {
-  background-image: linear-gradient(to bottom, $shade-1, $teal, #fc7800);
-  -webkit-background-clip: text;
-  color: transparent;
-}
-$teal: #fce837 !default;
-
-// Mixin for gradient text
-@mixin gradient-text {
-  background-image: linear-gradient(to bottom, $shade-1, $teal, #fc7800);
-  -webkit-background-clip: text;
-  color: transparent;
-}
-
 html,
 body {
   margin: 0;
   padding: 0;
-  background-color: rgb(24 24 27);
+  background-color: rgb(24, 24, 27);
   font-family: "PressStart2P-vaV7";
-  color: $teal;
+  color: #fce837;
   height: 100%;
   overflow: hidden;
 }
@@ -49,15 +27,20 @@ h3,
 h4,
 h5,
 h6 {
-  @include gradient-text;
+  background-image: linear-gradient(to bottom, #d7dcdf, #fce837, #fc7800);
+  -webkit-background-clip: text;
+  color: transparent;
 }
+
 h1,
 h2,
 h3,
 h4,
 h5,
 h6 {
-  @include gradient-text;
+  background-image: linear-gradient(to bottom, #d7dcdf, #fce837, #fc7800);
+  -webkit-background-clip: text;
+  color: transparent;
 }
 
 .page {
@@ -80,11 +63,10 @@ h6 {
 .arcadefont {
   font-family: "PressStart2P-vaV7", sans-serif;
   font-size: 24px;
-  color: $teal;
+  color: #fce837;
   margin: 0 2%;
-  margin-bottom: 5%; //adjust margin bottom of infosection
+  margin-bottom: 5%;
 }
-
 
 .main_menu-container {
   display: flex;
@@ -103,11 +85,12 @@ h6 {
 }
 
 .arrow-stack {
-  display: flex; // arrows placed on top of each other
+  display: flex;
   justify-content: center;
   align-items: center;
-  position: relative; // Optional, for proper context
+  position: relative;
 }
+
 .base-arrow {
   z-index: 1; /* Ensure this arrow is on the bottom */
 }
@@ -125,17 +108,13 @@ h6 {
 }
 
 .svg-arrow-in-main {
-  margin: 7% 0; // Add space around arrows if needed
+  margin: 7% 0;
   width: 10%;
   align-items: inherit;
 }
 
 @keyframes bounce {
-  0%,
-  20%,
-  50%,
-  80%,
-  100% {
+  0%, 20%, 50%, 80%, 100% {
     transform: translateY(0);
   }
   40% {
@@ -145,13 +124,8 @@ h6 {
     transform: translateY(-5px);
   }
 }
-//testing different arrow up animation
 @keyframes arrow-small {
-  0%,
-  20%,
-  50%,
-  80%,
-  100% {
+  0%, 20%, 50%, 80%, 100% {
     transform: scale(1);
   }
   40% {
@@ -164,10 +138,10 @@ h6 {
     transform: scale(1);
   }
 }
-
 .bounce {
   animation: bounce 0.6s ease-in-out;
 }
+
 .arrow-small {
   animation: arrow-small 0.3s;
   transform-origin: center;
@@ -176,7 +150,6 @@ h6 {
 /* Outlined Duplicate Animation */
 .arrow-outline {
   animation: outline-expand 300ms ease-out;
-
   transform-origin: center;
 }
 
@@ -190,22 +163,19 @@ h6 {
     opacity: 0.15;
   }
 }
-
 .smallscreenvideo {
   max-width: 95%;
   max-height: 60vh;
   border-radius: 8px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   position: relative;
-  z-index: 1; //Keep the video above video-placeholder
+  z-index: 1;
 }
 
-//placeholder insures smallscreenvideo doesn't flicker upon toggleing between index
 .video-placeholder {
   width: 100%;
   min-height: 47vh;
   display: flex;
-  // background-color: #EB66A2;
   align-items: center;
   justify-content: center;
   border-radius: 8px;
@@ -227,7 +197,7 @@ h6 {
 
 .video-info {
   width: 100%;
-  text-align: left; // Centers the text within the video-info div
+  text-align: left;
 }
 
 .video-info p {
@@ -235,35 +205,32 @@ h6 {
   padding-bottom: 5%;
 }
 
-// Container positioning modifiers
 .btn-container-main-menu {
   position: absolute;
   bottom: 0%;
   right: 20%;
   width: 100%;
   height: 100%;
-
-  .btn-container {
-    position: relative;
-    width: 100%;
-    height: 100%;
-  }
 }
+.btn-container-main-menu .btn-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
 .btn-container-about-choreo {
   position: absolute;
   bottom: 0%;
   right: 10%;
   width: 100%;
   height: 100%;
-
-  .btn-container {
-    position: relative;
-    width: 100%;
-    height: 100%;
-  }
+}
+.btn-container-about-choreo .btn-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
 }
 
-//Styling for about_choreo pages
 .about-choreo-container {
   display: flex;
   flex-direction: column;
@@ -274,7 +241,6 @@ h6 {
   height: 100vh;
   overflow-x: hidden;
   overflow-y: auto;
-  // position: relative;
 }
 
 .svg-arrow-in-about-top {
@@ -335,10 +301,8 @@ h6 {
   align-items: stretch;
   gap: 0.75rem;
   flex-grow: 1;
-  // background-color: yellow;
 }
 
-//section for the styling progress bar
 .stat-container {
   display: flex;
   align-items: center;
@@ -347,7 +311,7 @@ h6 {
 }
 
 .stat-label {
-  font-size: 1rem; //<--size of "strength" & "flexibility"
+  font-size: 1rem;
   width: 11rem;
 }
 
@@ -367,6 +331,7 @@ h6 {
   transition: width;
   animation: fill-bar 1.3s ease;
 }
+
 @keyframes fill-bar {
   0% {
     width: 0%;
@@ -375,14 +340,12 @@ h6 {
     width: var(--stat-percentage);
   }
 }
-
 .stat-value {
   min-width: 24px;
   text-align: right;
   font-size: 0.875rem;
 }
 
-//Styling for choreography_page.rs
 .video-list {
   display: flex;
   flex-direction: column;
@@ -409,7 +372,7 @@ h6 {
   width: 160px;
   height: 100px;
   flex-shrink: 0;
-  border: 2px dashed $teal;
+  border: 2px dashed #fce837;
   border-radius: 4px;
   display: flex;
   align-items: center;
@@ -435,25 +398,24 @@ h6 {
 
 .video-list-fields input {
   background: #000;
-  color: $teal;
-  border: 1px solid $teal;
+  color: #fce837;
+  border: 1px solid #fce837;
   padding: 0.5rem;
   font-family: inherit;
 }
 
 .confirmed-choreography-list {
-  color: $teal;
+  color: #fce837;
   font-family: inherit;
 }
 
 .arcadefont {
   font-family: "PressStart2P-vaV7", sans-serif;
   font-size: 24px;
-  color: $teal;
+  color: #fce837;
   margin: 0 2%;
-  margin-bottom: 5%; //adjust margin bottom of infosection
+  margin-bottom: 5%;
 }
-
 
 .main_menu-container {
   display: flex;
@@ -464,7 +426,6 @@ h6 {
   padding: 2rem;
   box-sizing: border-box;
 }
-
 
 .main-panel {
   width: min(280px, 40vw);
@@ -479,7 +440,6 @@ h6 {
   min-height: 200px;
   margin-top: 1rem;
   padding: 0;
-  
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
   overflow: hidden;
   display: flex;
@@ -498,7 +458,7 @@ h6 {
 }
 
 @keyframes error-message-fade {
-0% {
+  0% {
     opacity: 0;
   }
   100% {
@@ -508,15 +468,13 @@ h6 {
     opacity: 0;
   }
 }
-
-//Buttons used in main_page.rs for "Dancers" and "Choreographies"
 .main-action-button {
   width: 100%;
   height: 100%;
   min-height: 200px;
-  border: 2px solid $teal;
+  border: 2px solid #fce837;
   background: rgba(252, 232, 232, 0.05);
-  color: $teal;
+  color: #fce837;
   font: inherit;
   cursor: pointer;
   display: flex;
@@ -536,11 +494,12 @@ h6 {
 }
 
 .arrow-stack {
-  display: flex; // arrows placed on top of each other
+  display: flex;
   justify-content: center;
   align-items: center;
-  position: relative; // Optional, for proper context
+  position: relative;
 }
+
 .base-arrow {
   z-index: 1; /* Ensure this arrow is on the bottom */
 }
@@ -558,17 +517,13 @@ h6 {
 }
 
 .svg-arrow-in-main {
-  margin: 7% 0; // Add space around arrows if needed
+  margin: 7% 0;
   width: 10%;
   align-items: inherit;
 }
 
 @keyframes bounce {
-  0%,
-  20%,
-  50%,
-  80%,
-  100% {
+  0%, 20%, 50%, 80%, 100% {
     transform: translateY(0);
   }
   40% {
@@ -578,13 +533,8 @@ h6 {
     transform: translateY(-5px);
   }
 }
-//testing different arrow up animation
 @keyframes arrow-small {
-  0%,
-  20%,
-  50%,
-  80%,
-  100% {
+  0%, 20%, 50%, 80%, 100% {
     transform: scale(1);
   }
   40% {
@@ -597,10 +547,10 @@ h6 {
     transform: scale(1);
   }
 }
-
 .bounce {
   animation: bounce 0.6s ease-in-out;
 }
+
 .arrow-small {
   animation: arrow-small 0.3s;
   transform-origin: center;
@@ -609,7 +559,6 @@ h6 {
 /* Outlined Duplicate Animation */
 .arrow-outline {
   animation: outline-expand 300ms ease-out;
-
   transform-origin: center;
 }
 
@@ -623,22 +572,19 @@ h6 {
     opacity: 0.15;
   }
 }
-
 .smallscreenvideo {
   max-width: 95%;
   max-height: 60vh;
   border-radius: 8px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   position: relative;
-  z-index: 1; //Keep the video above video-placeholder
+  z-index: 1;
 }
 
-//placeholder insures smallscreenvideo doesn't flicker upon toggleing between index
 .video-placeholder {
   width: 100%;
   min-height: 47vh;
   display: flex;
-  // background-color: #EB66A2;
   align-items: center;
   justify-content: center;
   border-radius: 8px;
@@ -660,7 +606,7 @@ h6 {
 
 .video-info {
   width: 100%;
-  text-align: left; // Centers the text within the video-info div
+  text-align: left;
 }
 
 .video-info p {
@@ -668,46 +614,41 @@ h6 {
   padding-bottom: 5%;
 }
 
-// positioning of logo_danceomatic in main menu page.
 .top-right-logo {
   position: absolute;
   top: 1%;
   right: 15%;
   width: 20%; /* Adjust as needed */
   height: auto; /* Maintain aspect ratio */
-  transform: (50%, 50%);
+  transform: 50%, 50%;
 }
-// end of danceOmatic logo animation and class
 
-// Container positioning modifiers
 .btn-container-main-menu {
   position: absolute;
   bottom: 0%;
   right: 20%;
   width: 100%;
   height: 100%;
-
-  .btn-container {
-    position: relative;
-    width: 100%;
-    height: 100%;
-  }
 }
+.btn-container-main-menu .btn-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
 .btn-container-about-choreo {
   position: absolute;
   bottom: 0%;
   right: 10%;
   width: 100%;
   height: 100%;
-
-  .btn-container {
-    position: relative;
-    width: 100%;
-    height: 100%;
-  }
+}
+.btn-container-about-choreo .btn-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
 }
 
-//Styling for about_choreo pages
 .about-choreo-container {
   display: flex;
   flex-direction: column;
@@ -718,7 +659,6 @@ h6 {
   height: 100vh;
   overflow-x: hidden;
   overflow-y: auto;
-  // position: relative;
 }
 
 .svg-arrow-in-about-top {
@@ -779,10 +719,8 @@ h6 {
   align-items: stretch;
   gap: 0.75rem;
   flex-grow: 1;
-  // background-color: yellow;
 }
 
-//section for the styling progress bar
 .stat-container {
   display: flex;
   align-items: center;
@@ -791,7 +729,7 @@ h6 {
 }
 
 .stat-label {
-  font-size: 1rem; //<--size of "strength" & "flexibility"
+  font-size: 1rem;
   width: 11rem;
 }
 
@@ -811,6 +749,7 @@ h6 {
   transition: width;
   animation: fill-bar 1.3s ease;
 }
+
 @keyframes fill-bar {
   0% {
     width: 0%;
@@ -819,3 +758,5 @@ h6 {
     width: var(--stat-percentage);
   }
 }
+
+/*# sourceMappingURL=data:application/json;charset=utf-8,%7B%22version%22:3,%22sourceRoot%22:%22%22,%22sources%22:%5B%22../../index.scss%22%5D,%22names%22:%5B%5D,%22mappings%22:%22AAAA;EACE;EACA;EACA;EACA;;AAGF;EACE;EACA;EACA;EACA;;AAuBF;AAAA;EAEE;EACA;EACA;EACA;EACA,OAvBK;EAwBL;EACA;;;AAGF;AAAA;AAAA;AAAA;AAAA;AAAA;EAhBE;EACA;EACA;;;AAsBF;AAAA;AAAA;AAAA;AAAA;AAAA;EAxBE;EACA;EACA;;;AA+BF;EACE;EACA;EACA;EACA;EACA;EACA;EACA;EACA;EACA;EACA;EACA;EACA;EACA;EACA;;;AAGF;EACE;EACA;EACA,OAjEK;EAkEL;EACA;;;AAIF;EACE;EACA;EACA;EACA;EACA;;;AAGF;EACE;EACA;EACA;EACA;EACA;;;AAGF;EACE;EACA;EACA;EACA;;;AAEF;EACE;;;AAGF;EACE;EACA;EACA;;;AAGF;EACE;EACA;EACA;;;AAGF;EACE;EACA;EACA;;;AAGF;EACE;IAKE;;EAEF;IACE;;EAEF;IACE;;;AAIJ;EACE;IAKE;;EAEF;IACE;;EAEF;IACE;;EAEF;IACE;;;AAIJ;EACE;;;AAEF;EACE;EACA;;;AAGF;AACA;EACE;EAEA;;;AAGF;EACE;IACE;IACA;;EAEF;IACE;IACA;;;AAIJ;EACE;EACA;EACA;EACA;EACA;EACA;;;AAIF;EACE;EACA;EACA;EAEA;EACA;EACA;EACA;EACA;;;AAGF;EACE;EACA;EACA;EACA;EACA;EACA;EACA;EACA;EACA;;;AAGF;EACE;EACA;;;AAGF;EACE;EACA;;;AAIF;EACE;EACA;EACA;EACA;EACA;;AAEA;EACE;EACA;EACA;;;AAGJ;EACE;EACA;EACA;EACA;EACA;;AAEA;EACE;EACA;EACA;;;AAKJ;EACE;EACA;EACA;EACA;EACA;EACA;EACA;EACA;EACA;;;AAIF;EACE;EACA;EACA;EACA;EACA;EACA;EACA;;;AAGF;EACE;EACA;EACA;EACA;EACA;EACA;EACA;;;AAGF;AACA;EACE;EACA;;;AAGF;EACE;EACA;EACA;EACA;EACA;EACA;EACA;EACA;EACA;EACA;EACA;;;AAGF;EACE;EACA;EACA;EACA;EACA;;;AAGF;EACE;;;AAGF;EACE;EACA;EACA;EACA;EACA;;;AAKF;EACE;EACA;EACA;EACA;;;AAGF;EACE;EACA;;;AAGF;EACE;EACA;EACA;EACA;EACA;EACA;EACA;;;AAGF;EACE;EACA;EACA;EACA;;;AAEF;EACE;IACE;;EAEF;IACE;;;AAIJ;EACE;EACA;EACA;;;AAIF;EACE;EACA;EACA;EACA;EACA;EACA;;;AAGF;EACE;EACA;EACA;EACA;EACA;EACA;;;AAGF;EACE;;;AAGF;EACE;EACA;EACA;EACA;EACA;EACA;EACA;EACA;EACA;EACA;EACA;EACA;;;AAGF;EACE;EACA;EACA;;;AAGF;EACE;EACA;EACA;EACA;;;AAGF;EACE;EACA,OApaK;EAqaL;EACA;EACA;;;AAGF;EACE,OA3aK;EA4aL;;;AAGF;EACE;EACA;EACA,OAlbK;EAmbL;EACA;;;AAIF;EACE;EACA;EACA;EACA;EACA;EACA;EACA;;;AAIF;EACE;EACA;EACA;EACA;EACA;;;AAGF;EACE;EACA;EACA;EACA;EAEA;EACA;EACA;EACA;EACA;;;AAGF;EACE;EACA;EACA;EACA;EACA;EACA;EACA;;;AAGF;EACA;IACI;;EAEF;IACE;;EAEF;IACE;;;AAKJ;EACE;EACA;EACA;EACA;EACA;EACA,OArfK;EAsfL;EACA;EACA;EACA;EACA;EACA;EACA;EACA;;;AAGF;EACE;EACA;EACA;EACA;EACA;;;AAGF;EACE;EACA;EACA;EACA;;;AAEF;EACE;;;AAGF;EACE;EACA;EACA;;;AAGF;EACE;EACA;EACA;;;AAGF;EACE;EACA;EACA;;;AAGF;EACE;IAKE;;EAEF;IACE;;EAEF;IACE;;;AAIJ;EACE;IAKE;;EAEF;IACE;;EAEF;IACE;;EAEF;IACE;;;AAIJ;EACE;;;AAEF;EACE;EACA;;;AAGF;AACA;EACE;EAEA;;;AAGF;EACE;IACE;IACA;;EAEF;IACE;IACA;;;AAIJ;EACE;EACA;EACA;EACA;EACA;EACA;;;AAIF;EACE;EACA;EACA;EAEA;EACA;EACA;EACA;EACA;;;AAGF;EACE;EACA;EACA;EACA;EACA;EACA;EACA;EACA;EACA;;;AAGF;EACE;EACA;;;AAGF;EACE;EACA;;;AAIF;EACE;EACA;EACA;EACA;EACA;EACA;;;AAKF;EACE;EACA;EACA;EACA;EACA;;AAEA;EACE;EACA;EACA;;;AAGJ;EACE;EACA;EACA;EACA;EACA;;AAEA;EACE;EACA;EACA;;;AAKJ;EACE;EACA;EACA;EACA;EACA;EACA;EACA;EACA;EACA;;;AAIF;EACE;EACA;EACA;EACA;EACA;EACA;EACA;;;AAGF;EACE;EACA;EACA;EACA;EACA;EACA;EACA;;;AAGF;AACA;EACE;EACA;;;AAGF;EACE;EACA;EACA;EACA;EACA;EACA;EACA;EACA;EACA;EACA;EACA;;;AAGF;EACE;EACA;EACA;EACA;EACA;;;AAGF;EACE;;;AAGF;EACE;EACA;EACA;EACA;EACA;;;AAKF;EACE;EACA;EACA;EACA;;;AAGF;EACE;EACA;;;AAGF;EACE;EACA;EACA;EACA;EACA;EACA;EACA;;;AAGF;EACE;EACA;EACA;EACA;;;AAEF;EACE;IACE;;EAEF;IACE%22,%22file%22:%22index.css%22%7D */
