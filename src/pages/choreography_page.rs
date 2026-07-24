@@ -4,18 +4,28 @@ use yew::prelude::*;
 
 #[function_component(ChoreographyPage)]
 pub fn choreography_page() -> Html {
+    const MAX_DRAFT_CHOREOGRAPHIES: usize = 4;
+
     let draft_choreographies = use_state(Vec::<ChoreographyEntry>::new);
     let confirmed_choreographies = use_state(Vec::<ChoreographyEntry>::new);
     let next_number = use_state(|| 1u32);
+    let max_reached_error = use_state(|| false);
 
     let on_add_choreography = {
         let draft_choreographies = draft_choreographies.clone();
         let next_number = next_number.clone();
+        let max_reached_error = max_reached_error.clone();
         Callback::from(move |_| {
+            if draft_choreographies.len() >= MAX_DRAFT_CHOREOGRAPHIES {
+                max_reached_error.set(true);
+                return;
+            }
+
             let mut updated = (*draft_choreographies).clone();
             updated.push(ChoreographyEntry::new(*next_number));
             draft_choreographies.set(updated);
             next_number.set(*next_number + 1);
+            max_reached_error.set(false);
         })
     };
 
@@ -69,12 +79,15 @@ pub fn choreography_page() -> Html {
 
     html! {
         <div class="page about-choreo-container">
-            <div class="arcadefont">
                 <h2>{ "Choreography Page" }</h2>
 
                 <button class="main-action-button" onclick={on_add_choreography}>
                     { "+ tilføj dans" }
                 </button>
+
+                if *max_reached_error {
+                    <p class="error-message">{ "Du har nået maks antal Koreografier" }</p>
+                }
 
                 <VideoList
                     entries={(*draft_choreographies).clone()}
@@ -92,7 +105,6 @@ pub fn choreography_page() -> Html {
                         }) }
                     </ul>
                 }
-            </div>
         </div>
     }
 }
