@@ -4,8 +4,8 @@ use serde::{Deserialize, Serialize};
 use wasm_bindgen::JsCast;
 use wasm_bindgen::prelude::Closure;
 use web_sys::{
-    CanvasRenderingContext2d, Event, File, HtmlCanvasElement, HtmlInputElement, HtmlVideoElement,
-    Url,
+    CanvasRenderingContext2d, DragEvent, Event, File, HtmlCanvasElement, HtmlInputElement,
+    HtmlVideoElement, Url,
 };
 use yew::prelude::*;
 
@@ -69,6 +69,7 @@ fn video_list_item(props: &VideoListItemProps) -> Html {
     let entry = &props.entry;
     let number = entry.number;
     let file_input_ref = use_node_ref();
+    let is_dragging_over = use_state(|| false);
 
     let on_dropzone_click = {
         let file_input_ref = file_input_ref.clone();
@@ -79,15 +80,55 @@ fn video_list_item(props: &VideoListItemProps) -> Html {
         })
     };
 
-    let on_file_change = {
+    let on_video_file = {
         let on_thumbnail_change = props.on_thumbnail_change.clone();
+        Callback::from(move |file: File| {
+            extract_video_thumbnail(file, number, on_thumbnail_change.clone());
+        })
+    };
+
+    let on_file_change = {
+        let on_video_file = on_video_file.clone();
         Callback::from(move |e: Event| {
             if let Some(input) = e.target_dyn_into::<HtmlInputElement>() {
                 if let Some(file_list) = input.files() {
                     if let Some(file) = file_list.get(0) {
-                        extract_video_thumbnail(file, number, on_thumbnail_change.clone());
+                        on_video_file.emit(file);
                     }
                 }
+            }
+        })
+    };
+
+    let on_dropzone_dragover = {
+        let is_dragging_over = is_dragging_over.clone();
+        Callback::from(move |e: DragEvent| {
+            e.prevent_default();
+            if !*is_dragging_over {
+                is_dragging_over.set(true);
+            }
+        })
+    };
+
+    let on_dropzone_dragleave = {
+        let is_dragging_over = is_dragging_over.clone();
+        Callback::from(move |_: DragEvent| {
+            is_dragging_over.set(false);
+        })
+    };
+
+    let on_dropzone_drop = {
+        let on_video_file = on_video_file.clone();
+        let is_dragging_over = is_dragging_over.clone();
+        Callback::from(move |e: DragEvent| {
+            e.prevent_default();
+            is_dragging_over.set(false);
+            if let Some(file) = e
+                .data_transfer()
+                .and_then(|dt| dt.files())
+                .and_then(|files| files.get(0))
+            {
+                on_video_file.emit(file);
             }
         })
     };
@@ -119,11 +160,21 @@ fn video_list_item(props: &VideoListItemProps) -> Html {
         <div class="video-list-item">
             <div class="video-list-number">{ format!("NR. {}", number) }</div>
 
-            <div class="dropzone" onclick={on_dropzone_click}>
-                if let Some(thumbnail) = &entry.video_thumbnail {
-                    <img src={thumbnail.clone()} alt="Video thumbnail" class="video-thumbnail" />
+            <div
+                class="dropzone"
+                onclick={on_dropzone_click}
+                ondragover={on_dropzone_dragover}
+                ondragleave={on_dropzone_dragleave}
+                ondrop={on_dropzone_drop}
+            >
+                if *is_dragging_over {
+                    <p class="info-message">{ "Drop video" }</p>
                 } else {
-                    <span>{ "Upload Demo Video" }</span>
+                    if let Some(thumbnail) = &entry.video_thumbnail {
+                        <img src={thumbnail.clone()} alt="Video thumbnail" class="video-thumbnail" />
+                    } else {
+                        <span>{ "Upload Demo Video" }</span>
+                    }
                 }
                 <input
                     type="file"
@@ -150,7 +201,7 @@ fn video_list_item(props: &VideoListItemProps) -> Html {
             </div>
 
             <button class="main-action-button" onclick={on_checkout_click}>
-                { format!("checkout dance {}", number) }
+                { format!("Tilføj info til NR.{}", number) }
             </button>
         </div>
     }

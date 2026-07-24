@@ -2,32 +2,57 @@
 use crate::components::molecules::video_list::{ChoreographyEntry, VideoList};
 use yew::prelude::*;
 
+const DRAFT_CHOREOGRAPHY_COUNT: u32 = 4;
+const DRAFT_CHOREOGRAPHIES_STORAGE_KEY: &str = "draft_choreographies";
+const CONFIRMED_CHOREOGRAPHIES_STORAGE_KEY: &str = "confirmed_choreographies";
+
+fn load_choreographies(key: &str) -> Option<Vec<ChoreographyEntry>> {
+    web_sys::window()
+        .and_then(|w| w.local_storage().ok().flatten())
+        .and_then(|storage| storage.get_item(key).ok().flatten())
+        .and_then(|json| serde_json::from_str(&json).ok())
+}
+
+fn save_choreographies(key: &str, entries: &[ChoreographyEntry]) {
+    if let Ok(json) = serde_json::to_string(entries) {
+        if let Some(storage) = web_sys::window().and_then(|w| w.local_storage().ok().flatten()) {
+            let _ = storage.set_item(key, &json);
+        }
+    }
+}
+
 #[function_component(ChoreographyPage)]
 pub fn choreography_page() -> Html {
-    const MAX_DRAFT_CHOREOGRAPHIES: usize = 4;
-
-    let draft_choreographies = use_state(Vec::<ChoreographyEntry>::new);
-    let confirmed_choreographies = use_state(Vec::<ChoreographyEntry>::new);
-    let next_number = use_state(|| 1u32);
-    let max_reached_error = use_state(|| false);
-
-    let on_add_choreography = {
-        let draft_choreographies = draft_choreographies.clone();
-        let next_number = next_number.clone();
-        let max_reached_error = max_reached_error.clone();
-        Callback::from(move |_| {
-            if draft_choreographies.len() >= MAX_DRAFT_CHOREOGRAPHIES {
-                max_reached_error.set(true);
-                return;
-            }
-
-            let mut updated = (*draft_choreographies).clone();
-            updated.push(ChoreographyEntry::new(*next_number));
-            draft_choreographies.set(updated);
-            next_number.set(*next_number + 1);
-            max_reached_error.set(false);
+    // Draft/confirmed lists are persisted to localStorage so edits survive a refresh
+    let draft_choreographies = use_state(|| {
+        load_choreographies(DRAFT_CHOREOGRAPHIES_STORAGE_KEY).unwrap_or_else(|| {
+            (1..=DRAFT_CHOREOGRAPHY_COUNT)
+                .map(ChoreographyEntry::new)
+                .collect::<Vec<_>>()
         })
-    };
+    });
+    let confirmed_choreographies = use_state(|| {
+        load_choreographies(CONFIRMED_CHOREOGRAPHIES_STORAGE_KEY).unwrap_or_default()
+    });
+
+    {
+        let draft_choreographies = draft_choreographies.clone();
+        use_effect_with(draft_choreographies.clone(), move |draft_choreographies| {
+            save_choreographies(DRAFT_CHOREOGRAPHIES_STORAGE_KEY, &draft_choreographies);
+            || ()
+        });
+    }
+
+    {
+        let confirmed_choreographies = confirmed_choreographies.clone();
+        use_effect_with(
+            confirmed_choreographies.clone(),
+            move |confirmed_choreographies| {
+                save_choreographies(CONFIRMED_CHOREOGRAPHIES_STORAGE_KEY, &confirmed_choreographies);
+                || ()
+            },
+        );
+    }
 
     let on_thumbnail_change = {
         let draft_choreographies = draft_choreographies.clone();
@@ -80,14 +105,6 @@ pub fn choreography_page() -> Html {
     html! {
         <div class="page about-choreo-container">
                 <h2>{ "Choreography Page" }</h2>
-
-                <button class="main-action-button" onclick={on_add_choreography}>
-                    { "+ tilføj dans" }
-                </button>
-
-                if *max_reached_error {
-                    <p class="error-message">{ "Du har nået maks antal Koreografier" }</p>
-                }
 
                 <VideoList
                     entries={(*draft_choreographies).clone()}
