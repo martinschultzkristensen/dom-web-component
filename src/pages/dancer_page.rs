@@ -7,7 +7,7 @@ use yew::prelude::*;
 
 const DANCERS_STORAGE_KEY: &str = "dancers";
 
-fn load_dancers() -> Vec<DancerData> {
+pub(crate) fn load_dancers() -> Vec<DancerData> {
     web_sys::window()
         .and_then(|w| w.local_storage().ok().flatten())
         .and_then(|storage| storage.get_item(DANCERS_STORAGE_KEY).ok().flatten())

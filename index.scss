@@ -523,6 +523,39 @@ h6 {
   margin-bottom: 1rem;
 }
 
+.choreo-dancers-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 800px;
+}
+
+.choreo-dancer-select {
+  flex: 1;
+  background: #000;
+  color: $teal;
+  border: 1px solid $teal;
+  padding: 0.75rem;
+  font-family: inherit;
+}
+
+.choreo-dancer-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.choreo-dancer-remove {
+  background: rgba(255, 123, 123, 0.05);
+  color: #ff7b7b;
+  border: 2px solid #ff7b7b;
+  border-radius: 8px;
+  padding: 0.6rem 1rem;
+  font: inherit;
+  cursor: pointer;
+}
+
 .arcadefont {
   font-family: "PressStart2P-vaV7", sans-serif;
   font-size: 24px;

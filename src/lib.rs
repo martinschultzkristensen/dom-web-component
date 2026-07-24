@@ -9,6 +9,7 @@ use yew_router::prelude::*;
 
 mod components;
 mod pages;
+mod video_thumbnail;
 #[derive(Clone, Routable, Debug, PartialEq)]
 pub enum Route {
     #[at("/")]
