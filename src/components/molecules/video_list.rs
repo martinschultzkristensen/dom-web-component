@@ -35,6 +35,7 @@ pub struct VideoListProps {
     pub on_title_change: Callback<(u32, String)>,
     pub on_duration_change: Callback<(u32, String)>,
     pub on_checkout: Callback<u32>,
+    pub on_add_info: Callback<u32>,
 }
 
 #[function_component(VideoList)]
@@ -49,6 +50,7 @@ pub fn video_list(props: &VideoListProps) -> Html {
                     on_title_change={props.on_title_change.clone()}
                     on_duration_change={props.on_duration_change.clone()}
                     on_checkout={props.on_checkout.clone()}
+                    on_add_info={props.on_add_info.clone()}
                 />
             }) }
         </div>
@@ -62,6 +64,7 @@ struct VideoListItemProps {
     on_title_change: Callback<(u32, String)>,
     on_duration_change: Callback<(u32, String)>,
     on_checkout: Callback<u32>,
+    on_add_info: Callback<u32>,
 }
 
 #[function_component(VideoListItem)]
@@ -151,9 +154,15 @@ fn video_list_item(props: &VideoListItemProps) -> Html {
         })
     };
 
-    let on_checkout_click = {
+    // Kept for a future "Send til danceOmatic" button; not wired to any button yet.
+    let _on_checkout_click = {
         let on_checkout = props.on_checkout.clone();
-        Callback::from(move |_| on_checkout.emit(number))
+        Callback::from(move |_: MouseEvent| on_checkout.emit(number))
+    };
+
+    let on_add_info_click = {
+        let on_add_info = props.on_add_info.clone();
+        Callback::from(move |_| on_add_info.emit(number))
     };
 
     html! {
@@ -200,7 +209,7 @@ fn video_list_item(props: &VideoListItemProps) -> Html {
                 />
             </div>
 
-            <button class="main-action-button" onclick={on_checkout_click}>
+            <button class="main-action-button" onclick={on_add_info_click}>
                 { format!("Tilføj info til NR.{}", number) }
             </button>
         </div>

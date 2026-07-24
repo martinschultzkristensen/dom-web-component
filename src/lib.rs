@@ -2,6 +2,7 @@
 use pages::choreography_page::ChoreographyPage;
 use pages::dancer_page::DancerPage;
 use pages::main_page::MainPage;
+use pages::sub_page::info_choreo_page::InfoPage;
 
 use yew::prelude::*;
 use yew_router::prelude::*;
@@ -16,6 +17,8 @@ pub enum Route {
     DancerPage,
     #[at("/choreographies")]
     ChoreographyPage,
+    #[at("/choreographies/:number/info")]
+    InfoPage { number: u32 },
 }
 
 #[function_component(DanceOmaticWebComponent)]
@@ -32,5 +35,6 @@ fn switch(routes: Route) -> Html {
         Route::MainPage => html! { <MainPage /> },
         Route::DancerPage => html! { <DancerPage /> },
         Route::ChoreographyPage => html! { <ChoreographyPage /> },
+        Route::InfoPage { number } => html! { <InfoPage number={number} /> },
     }
 }

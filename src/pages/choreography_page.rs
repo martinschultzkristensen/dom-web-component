@@ -1,6 +1,8 @@
 //src/pages/choreography_page.rs
+use crate::Route;
 use crate::components::molecules::video_list::{ChoreographyEntry, VideoList};
 use yew::prelude::*;
+use yew_router::prelude::use_navigator;
 
 const DRAFT_CHOREOGRAPHY_COUNT: u32 = 4;
 const DRAFT_CHOREOGRAPHIES_STORAGE_KEY: &str = "draft_choreographies";
@@ -102,6 +104,11 @@ pub fn choreography_page() -> Html {
         })
     };
 
+    let navigator = use_navigator().unwrap();
+    let on_add_info = Callback::from(move |number: u32| {
+        navigator.push(&Route::InfoPage { number });
+    });
+
     html! {
         <div class="page about-choreo-container">
                 <h2>{ "Choreography Page" }</h2>
@@ -112,6 +119,7 @@ pub fn choreography_page() -> Html {
                     on_title_change={on_title_change}
                     on_duration_change={on_duration_change}
                     on_checkout={on_checkout}
+                    on_add_info={on_add_info}
                 />
 
                 if !confirmed_choreographies.is_empty() {
