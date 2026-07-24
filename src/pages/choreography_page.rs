@@ -5,7 +5,7 @@ use yew::prelude::*;
 use yew_router::prelude::use_navigator;
 
 const DRAFT_CHOREOGRAPHY_COUNT: u32 = 4;
-const DRAFT_CHOREOGRAPHIES_STORAGE_KEY: &str = "draft_choreographies";
+pub(crate) const DRAFT_CHOREOGRAPHIES_STORAGE_KEY: &str = "draft_choreographies";
 const CONFIRMED_CHOREOGRAPHIES_STORAGE_KEY: &str = "confirmed_choreographies";
 
 fn load_choreographies(key: &str) -> Option<Vec<ChoreographyEntry>> {

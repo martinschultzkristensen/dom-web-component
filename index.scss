@@ -455,6 +455,74 @@ h6 {
   font-family: inherit;
 }
 
+//Styling for info_choreo_page.rs
+.choreo-info-section {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 1rem;
+  width: 100%;
+  max-width: 800px;
+  margin: 2rem 0;
+  padding: 1rem;
+  border-radius: 8px;
+  border-color: #eb66a2;
+  border-width: 2px;
+  border-style: solid;
+}
+
+.choreo-image-dropzone {
+  position: relative;
+  width: 200px;
+  height: 160px;
+  flex-shrink: 0;
+  border: 2px dashed $teal;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  cursor: pointer;
+  overflow: hidden;
+  font-size: 0.8rem;
+}
+
+.choreo-image-dropzone img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.choreo-image-dropzone .info-message {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.choreo-description-input {
+  flex: 1;
+  background: #000;
+  color: $teal;
+  border: 1px solid $teal;
+  padding: 0.75rem;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 160px;
+}
+
+.choreo-title-display {
+  width: 100%;
+  max-width: 800px;
+  background: #000;
+  color: $teal;
+  border: 1px solid $teal;
+  padding: 0.75rem;
+  font-family: inherit;
+  margin-bottom: 1rem;
+}
+
 .arcadefont {
   font-family: "PressStart2P-vaV7", sans-serif;
   font-size: 24px;
