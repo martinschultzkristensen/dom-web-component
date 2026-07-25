@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use wasm_bindgen::prelude::{wasm_bindgen, Closure};
 use wasm_bindgen::{JsCast, JsValue};
-use web_sys::{Event, FileReader, HtmlInputElement};
+use web_sys::{Event, FileReader, FocusEvent, HtmlInputElement, KeyboardEvent};
 use yew::prelude::*;
 
 #[wasm_bindgen]
@@ -57,6 +57,8 @@ pub struct DancerCardProps {
     pub dancer: DancerData,
     #[prop_or_default]
     pub on_image_update: Callback<String>,
+    #[prop_or_default]
+    pub on_name_update: Callback<String>,
 }
 
 #[function_component(DancerCard)]
@@ -93,6 +95,67 @@ pub fn dancer_card(props: &DancerCardProps) -> Html {
             || ()
         });
     }
+
+    // Name editing state: click the name to turn it into a text input
+    let is_editing_name = use_state(|| false);
+    let name_draft = use_state(|| dancer.name.clone());
+    let name_input_ref = use_node_ref();
+
+    {
+        let name_input_ref = name_input_ref.clone();
+        use_effect_with(*is_editing_name, move |editing| {
+            if *editing {
+                if let Some(input) = name_input_ref.cast::<HtmlInputElement>() {
+                    let _ = input.focus();
+                    input.select();
+                }
+            }
+            || ()
+        });
+    }
+
+    let on_edit_click = {
+        let is_editing_name = is_editing_name.clone();
+        let name_draft = name_draft.clone();
+        let name = dancer.name.clone();
+        Callback::from(move |_| {
+            name_draft.set(name.clone());
+            is_editing_name.set(true);
+        })
+    };
+
+    let on_name_input = {
+        let name_draft = name_draft.clone();
+        Callback::from(move |e: InputEvent| {
+            if let Some(input) = e.target_dyn_into::<HtmlInputElement>() {
+                name_draft.set(input.value());
+            }
+        })
+    };
+
+    let commit_name_edit = {
+        let is_editing_name = is_editing_name.clone();
+        let name_draft = name_draft.clone();
+        let on_name_update = props.on_name_update.clone();
+        move || {
+            is_editing_name.set(false);
+            on_name_update.emit((*name_draft).clone());
+        }
+    };
+
+    let on_name_blur = {
+        let commit_name_edit = commit_name_edit.clone();
+        Callback::from(move |_: FocusEvent| commit_name_edit())
+    };
+
+    let on_name_keydown = {
+        let commit_name_edit = commit_name_edit.clone();
+        Callback::from(move |e: KeyboardEvent| {
+            if e.key() == "Enter" {
+                commit_name_edit();
+            }
+        })
+    };
 
     let file_input_ref = use_node_ref();
 
@@ -137,25 +200,43 @@ pub fn dancer_card(props: &DancerCardProps) -> Html {
     };
 
     html! {
-        <div class="info-section-container">
-            if (*img_src).is_empty() {
-                <button class="main-action-button" onclick={on_add_image_click}>
-                    { "Add Image" }
-                </button>
-            } else {
-                <img src={(*img_src).clone()} alt={format!("Image of {}", dancer.name)} />
-            }
-            <input
-                type="file"
-                accept="image/*"
-                ref={file_input_ref}
-                style="display: none;"
-                onchange={on_file_change}
-            />
-            <div class="name-and-stats-container">
-            <p>{&dancer.name}</p>
-                <StatBar value={dancer.strength} label="strength" />
-                <StatBar value={dancer.flexibility} label="flexibility" />
+        <div class="dancer-card-row">
+                <button class="dancer-edit-button" onclick={on_edit_click}>
+                { "Edit" }
+            </button>
+            <div class="info-section-container">
+                if (*img_src).is_empty() {
+                    <button class="main-action-button" onclick={on_add_image_click}>
+                        { "Add Image" }
+                    </button>
+                } else {
+                    <img src={(*img_src).clone()} alt={format!("Image of {}", dancer.name)} />
+                }
+                <input
+                    type="file"
+                    accept="image/*"
+                    ref={file_input_ref}
+                    style="display: none;"
+                    onchange={on_file_change}
+                />
+                <div class="name-and-stats-container">
+                if *is_editing_name {
+                    <input
+                    type="text"
+                    class="dancer-name-input"
+                    placeholder="Name:"
+                    ref={name_input_ref}
+                    value={(*name_draft).clone()}
+                    oninput={on_name_input}
+                    onblur={on_name_blur}
+                    onkeydown={on_name_keydown}
+                    />
+                } else {
+                    <p class="dancer-name">{&dancer.name}</p>
+                }
+                    <StatBar value={dancer.strength} label="strength" />
+                    <StatBar value={dancer.flexibility} label="flexibility" />
+                </div>
             </div>
         </div>
     }

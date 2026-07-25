@@ -146,21 +146,11 @@ pub fn dancer_page() -> Html {
 
     html! {
         <div class="page about-choreo-container">
-            <div class="arcadefont">
                 <h2>{ "Dancer Page" }</h2>
-
                 // --- Add Dancer Form ---
                 <div class="info-section-container">
                     <div class="description">
                         <p>{ "Add a new dancer" }</p>
-
-                        <input
-                            type="file"
-                            accept="image/*"
-                            onchange={on_image_change}
-                        />
-
-                        <br/>
 
                         <input
                             type="text"
@@ -170,6 +160,14 @@ pub fn dancer_page() -> Html {
                         />
 
                         <br/>
+                        <input
+                            type="file"
+                            accept="image/*"
+                            onchange={on_image_change}
+                        />
+
+                        <br/>
+
 
                         <label>{ format!("Strength: {}", *strength) }</label>
                         <input
@@ -195,7 +193,7 @@ pub fn dancer_page() -> Html {
                     if !(*name_error).is_empty() {
                             <p class="error-message">{ (*name_error).clone() }</p>
                         }
-                    <div class="add-dancer-panel">
+                    <div class="main-panel">
                         <button class="main-action-button" onclick={on_add_dancer}>
                             { "Add Dancer" }
                         </button>
@@ -207,7 +205,7 @@ pub fn dancer_page() -> Html {
 
                 <h2>{ "Dancers" }</h2>
                 {
-                    (*dancers).iter().enumerate().map(|(idx, dancer)| {
+                    (*dancers).iter().enumerate().rev().map(|(idx, dancer)| {
                         let on_image_update = {
                             let dancers = dancers.clone();
                             Callback::from(move |data_url: String| {
@@ -219,12 +217,23 @@ pub fn dancer_page() -> Html {
                             })
                         };
 
+                        let on_name_update = {
+                            let dancers = dancers.clone();
+                            Callback::from(move |new_name: String| {
+                                let mut updated = (*dancers).clone();
+                                if let Some(d) = updated.get_mut(idx) {
+                                    d.name = new_name;
+                                }
+                                dancers.set(updated);
+                            })
+                        };
+                        
                         html! {
-                            <DancerCard dancer={dancer.clone()} on_image_update={on_image_update} />
+                            <DancerCard dancer={dancer.clone()} on_image_update={on_image_update} on_name_update={on_name_update} />
                         }
                     }).collect::<Html>()
-                }
-            </div>
-        </div>
+                    }
+                </div>
+   
     }
 }

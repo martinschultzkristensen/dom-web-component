@@ -443,8 +443,8 @@ pub fn info_page(props: &InfoPageProps) -> Html {
                                     <option key="" value="" selected={selected_name.is_empty()}>
                                         { "Select dancer from dropdown" }
                                     </option>
-                                    { for all_dancers.iter().filter(|dancer| !taken_elsewhere.contains(&dancer.name)).map(|dancer| html! {
-                                        <option key={dancer.name.clone()} value={dancer.name.clone()} selected={dancer.name == selected_name}>
+                                    { for all_dancers.iter().enumerate().filter(|(_, dancer)| !taken_elsewhere.contains(&dancer.name)).map(|(dancer_index, dancer)| html! {
+                                        <option key={dancer_index} value={dancer.name.clone()} selected={dancer.name == selected_name}>
                                             { dancer.name.clone() }
                                         </option>
                                     }) }
