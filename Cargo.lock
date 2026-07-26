@@ -46,6 +46,7 @@ dependencies = [
  "gloo-events",
  "gloo-net 0.6.0",
  "gloo-timers",
+ "js-sys",
  "serde",
  "serde-wasm-bindgen",
  "serde_json",

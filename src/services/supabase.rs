@@ -2,6 +2,7 @@ use gloo_net::http::Request;
 use serde::{Deserialize, Serialize};
 use web_sys::window;
 use serde_json::Value;
+use web_sys::File;
 
 const SUPABASE_URL: &str = "https://tfrkkrbfgdgsbwqcrcqq.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY: &str = "sb_publishable_EKhP5Y6SwcqoIEAdeob62w_xOhFZI-s";
@@ -247,6 +248,16 @@ pub struct NewDancer {
     pub flexibility: u8,
 }
 
+#[derive(Debug, Deserialize, Clone)]
+pub struct DancerRow {
+    pub id: String,
+    pub name: String,
+    pub image_path: Option<String>,
+    pub strength: u8,
+    pub flexibility: u8,
+    pub status: String,
+    pub visibility: String,
+}
 pub async fn insert_dancer(dancer: NewDancer) -> Result<(), String> {
     let access_token = get_access_token().ok_or("User is not logged in".to_string())?;
 
@@ -273,5 +284,161 @@ pub async fn insert_dancer(dancer: NewDancer) -> Result<(), String> {
             .unwrap_or_else(|_| "Unknown dancer insert error".to_string());
 
         Err(format!("Dancer insert failed: {} {}", status, error_text))
+    }
+}
+
+pub async fn fetch_dancers() -> Result<Vec<DancerRow>, String> {
+    let access_token = get_access_token().ok_or("User is not logged in".to_string())?;
+
+    let url = format!(
+        "{}/rest/v1/dancers?select=id,name,image_path,strength,flexibility,status,visibility&order=created_at.desc",
+        SUPABASE_URL
+    );
+
+    let response = Request::get(&url)
+        .header("apikey", SUPABASE_PUBLISHABLE_KEY)
+        .header("Authorization", &format!("Bearer {}", access_token))
+        .send()
+        .await
+        .map_err(|e| format!("Dancers request failed: {:?}", e))?;
+
+    if !response.ok() {
+        let status = response.status();
+        let error_text = response
+            .text()
+            .await
+            .unwrap_or_else(|_| "Unknown dancers fetch error".to_string());
+
+        return Err(format!("Dancers fetch failed: {} {}", status, error_text));
+    }
+
+    response
+        .json()
+        .await
+        .map_err(|e| format!("Could not read dancers response: {:?}", e))
+}
+
+fn sanitize_file_name(file_name: &str) -> String {
+    let cleaned: String = file_name
+        .chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || c == '.' || c == '-' || c == '_' {
+                c
+            } else {
+                '_'
+            }
+        })
+        .collect();
+
+    if cleaned.trim().is_empty() {
+        "image.png".to_string()
+    } else {
+        cleaned
+    }
+}
+
+pub async fn upload_dancer_image(file: File) -> Result<String, String> {
+    let access_token = get_access_token().ok_or("User is not logged in".to_string())?;
+    let user_id = get_current_user_id().ok_or("Missing user id".to_string())?;
+
+    let file_name = sanitize_file_name(&file.name());
+    let timestamp = js_sys::Date::now() as u64;
+
+    let file_path = format!("{}/dancers/{}_{}", user_id, timestamp, file_name);
+
+    let content_type = if file.type_().is_empty() {
+        "application/octet-stream".to_string()
+    } else {
+        file.type_()
+    };
+
+    let url = format!(
+        "{}/storage/v1/object/dancer-images/{}",
+        SUPABASE_URL,
+        file_path
+    );
+
+    let response = Request::post(&url)
+        .header("apikey", SUPABASE_PUBLISHABLE_KEY)
+        .header("Authorization", &format!("Bearer {}", access_token))
+        .header("Content-Type", &content_type)
+        .header("x-upsert", "true")
+        .body(file)
+        .map_err(|e| format!("Could not build image upload request: {:?}", e))?
+        .send()
+        .await
+        .map_err(|e| format!("Image upload failed: {:?}", e))?;
+
+    if response.ok() {
+        Ok(file_path)
+    } else {
+        let status = response.status();
+        let error_text = response
+            .text()
+            .await
+            .unwrap_or_else(|_| "Unknown image upload error".to_string());
+
+        Err(format!("Image upload failed: {} {}", status, error_text))
+    }
+}
+
+#[derive(Serialize)]
+struct SignedUrlRequest {
+    #[serde(rename = "expiresIn")]
+    expires_in: u32,
+}
+
+#[derive(Debug, Deserialize)]
+struct SignedUrlResponse {
+    #[serde(rename = "signedURL")]
+    signed_url: String,
+}
+
+pub async fn create_signed_url(path: &str) -> Result<String, String> {
+    let access_token = get_access_token().ok_or("User is not logged in".to_string())?;
+
+    let url = format!(
+        "{}/storage/v1/object/sign/dancer-images/{}",
+        SUPABASE_URL,
+        path
+    );
+
+    let body = SignedUrlRequest {
+        expires_in: 60 * 60,
+    };
+
+    let response = Request::post(&url)
+        .header("apikey", SUPABASE_PUBLISHABLE_KEY)
+        .header("Authorization", &format!("Bearer {}", access_token))
+        .header("Content-Type", "application/json")
+        .json(&body)
+        .map_err(|e| format!("Could not build signed URL request: {:?}", e))?
+        .send()
+        .await
+        .map_err(|e| format!("Signed URL request failed: {:?}", e))?;
+
+    if !response.ok() {
+        let status = response.status();
+        let error_text = response
+            .text()
+            .await
+            .unwrap_or_else(|_| "Unknown signed URL error".to_string());
+
+        return Err(format!("Signed URL failed: {} {}", status, error_text));
+    }
+
+    let signed_response: SignedUrlResponse = response
+        .json()
+        .await
+        .map_err(|e| format!("Could not read signed URL response: {:?}", e))?;
+
+    if signed_response.signed_url.starts_with("http") {
+        Ok(signed_response.signed_url)
+    } else {
+        Ok(format!(
+            "{}/storage/v1{}",
+            SUPABASE_URL,
+            signed_response.signed_url
+        ))
     }
 }
