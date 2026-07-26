@@ -1,7 +1,6 @@
 //src/pages/sub_page/info_choreo_page.rs
 use crate::components::molecules::video_list::ChoreographyEntry;
 use crate::pages::choreography_page::DRAFT_CHOREOGRAPHIES_STORAGE_KEY;
-use crate::pages::dancer_page::load_dancers;
 use crate::video_thumbnail::extract_video_thumbnail;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::JsCast;
@@ -10,6 +9,8 @@ use web_sys::{
     DragEvent, Event, File, FileReader, HtmlInputElement, HtmlSelectElement, HtmlTextAreaElement,
 };
 use yew::prelude::*;
+use crate::services::supabase::fetch_dancers;
+use wasm_bindgen_futures::spawn_local;
 
 #[derive(Properties, PartialEq)]
 pub struct InfoPageProps {
@@ -85,11 +86,35 @@ pub fn info_page(props: &InfoPageProps) -> Html {
         use_state(|| load_choreography_info(number).choreo_video_thumbnail);
     let description = use_state(|| load_choreography_info(number).description);
     let selected_dancers = use_state(|| with_trailing_empty_slot(load_choreography_info(number).dancers));
-    let all_dancers = use_state(load_dancers);
+    let all_dancers = use_state(Vec::<String>::new);
     let is_dragging_over_image = use_state(|| false);
     let is_dragging_over_video = use_state(|| false);
     let image_input_ref = use_node_ref();
     let video_input_ref = use_node_ref();
+
+    {
+    let all_dancers = all_dancers.clone();
+
+    use_effect_with((), move |_| {
+        spawn_local(async move {
+            match fetch_dancers().await {
+                Ok(rows) => {
+                    let dancer_names = rows
+                        .into_iter()
+                        .map(|dancer| dancer.name)
+                        .collect::<Vec<String>>();
+
+                    all_dancers.set(dancer_names);
+                }
+                Err(_) => {
+                    all_dancers.set(Vec::new());
+                }
+            }
+        });
+
+        || ()
+    });
+}
 
     {
         let choreo_video_thumbnail = choreo_video_thumbnail.clone();
@@ -430,25 +455,36 @@ pub fn info_page(props: &InfoPageProps) -> Html {
 
                         // A dancer picked in another slot is hidden here so the same
                         // dancer can't be chosen twice for this choreography.
-                        let taken_elsewhere: std::collections::HashSet<&String> = selected_dancers
-                            .iter()
-                            .enumerate()
-                            .filter(|(other_index, name)| *other_index != index && !name.is_empty())
-                            .map(|(_, name)| name)
-                            .collect();
+                       let taken_elsewhere: Vec<String> = selected_dancers
+    .iter()
+    .enumerate()
+    .filter(|(other_index, name)| *other_index != index && !name.is_empty())
+    .map(|(_, name)| name.clone())
+    .collect();
 
-                        html! {
-                            <div key={index} class="choreo-dancer-row">
-                                <select class="choreo-dancer-select" onchange={on_change}>
-                                    <option key="" value="" selected={selected_name.is_empty()}>
-                                        { "Select dancer from dropdown" }
-                                    </option>
-                                    { for all_dancers.iter().enumerate().filter(|(_, dancer)| !taken_elsewhere.contains(&dancer.name)).map(|(dancer_index, dancer)| html! {
-                                        <option key={dancer_index} value={dancer.name.clone()} selected={dancer.name == selected_name}>
-                                            { dancer.name.clone() }
-                                        </option>
-                                    }) }
-                                </select>
+html! {
+    <div key={index} class="choreo-dancer-row">
+        <select class="choreo-dancer-select" onchange={on_change}>
+            <option key="" value="" selected={selected_name.is_empty()}>
+                { "Select dancer from dropdown" }
+            </option>
+
+            {
+                for all_dancers
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, dancer_name)| !taken_elsewhere.contains(dancer_name))
+                    .map(|(dancer_index, dancer_name)| html! {
+                        <option
+                            key={dancer_index}
+                            value={dancer_name.clone()}
+                            selected={*dancer_name == selected_name}
+                        >
+                            { dancer_name.clone() }
+                        </option>
+                    })
+            }
+        </select>
                                 if !selected_name.is_empty() {
                                     <button type="button" class="choreo-dancer-remove" onclick={on_remove_click}>
                                         { "Fjern" }
