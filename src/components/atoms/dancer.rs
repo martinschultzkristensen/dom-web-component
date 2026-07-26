@@ -20,17 +20,6 @@ pub struct DancerData {
     pub flexibility: u8,
 }
 
-impl DancerData {
-    fn new(image: String, name: String, strength: u8, flexibility: u8) -> Self {
-        Self {
-            image,
-            name,
-            strength,
-            flexibility,
-        }
-    }
-}
-
 #[derive(Properties, PartialEq)]
 pub struct StatBarProps {
     pub value: u8,

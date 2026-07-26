@@ -11,14 +11,6 @@ use yew::prelude::*;
 
 const DANCERS_STORAGE_KEY: &str = "dancers";
 
-pub(crate) fn load_dancers() -> Vec<DancerData> {
-    web_sys::window()
-        .and_then(|w| w.local_storage().ok().flatten())
-        .and_then(|storage| storage.get_item(DANCERS_STORAGE_KEY).ok().flatten())
-        .and_then(|json| serde_json::from_str(&json).ok())
-        .unwrap_or_default()
-}
-
 fn save_dancers_to_local_cache(dancers: &[DancerData]) {
     if let Ok(json) = serde_json::to_string(dancers) {
         if let Some(storage) = web_sys::window().and_then(|w| w.local_storage().ok().flatten()) {
