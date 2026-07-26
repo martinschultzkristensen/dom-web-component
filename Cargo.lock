@@ -43,7 +43,9 @@ dependencies = [
 name = "dom-web-component"
 version = "0.1.0"
 dependencies = [
+ "gloo-events",
  "gloo-net 0.6.0",
+ "gloo-timers",
  "serde",
  "serde-wasm-bindgen",
  "serde_json",
