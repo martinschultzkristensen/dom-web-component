@@ -167,7 +167,7 @@ fn video_list_item(props: &VideoListItemProps) -> Html {
 
     html! {
         <div class="video-list-item">
-            <div class="video-list-number">{ format!("NR. {}", number) }</div>
+            <div class="video-list-number">{ format!("No. {}", number) }</div>
 
             <div
                 class="dropzone"
@@ -203,14 +203,14 @@ fn video_list_item(props: &VideoListItemProps) -> Html {
                 />
                 <input
                     type="text"
-                    placeholder="Længde:"
+                    placeholder="Duration:"
                     value={entry.duration.clone()}
                     oninput={on_duration_input}
                 />
             </div>
 
             <button class="main-action-button" onclick={on_add_info_click}>
-                { format!("Tilføj info til NR.{}", number) }
+                { format!("Add info for No.{}", number) }
             </button>
         </div>
     }

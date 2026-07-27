@@ -343,7 +343,7 @@ pub fn info_page(props: &InfoPageProps) -> Html {
     html! {
         <div class="page about-choreo-container">
             <div class="arcadefont">
-                <h2>{ format!("Info side til koreografi NR. {}", number) }</h2>
+                <h2>{ format!("Info page for choreography No. {}", number) }</h2>
 
                 <input
                     type="text"
@@ -362,12 +362,12 @@ pub fn info_page(props: &InfoPageProps) -> Html {
                         ondrop={on_image_dropzone_drop}
                     >
                         if *is_dragging_over_image {
-                            <p class="info-message">{ "Drop billede" }</p>
+                            <p class="info-message">{ "Drop image" }</p>
                         } else {
                             if let Some(image) = &*choreo_image {
                                 <img src={image.clone()} alt="Choreography" />
                             } else {
-                                <span>{ "Upload billede" }</span>
+                                <span>{ "Upload image" }</span>
                             }
                         }
                         <input
@@ -381,7 +381,7 @@ pub fn info_page(props: &InfoPageProps) -> Html {
 
                     <textarea
                         class="choreo-description-input"
-                        placeholder="Beskriv forestillingen:"
+                        placeholder="Describe the performance:"
                         value={(*description).clone()}
                         oninput={on_description_input}
                     />
@@ -451,7 +451,7 @@ pub fn info_page(props: &InfoPageProps) -> Html {
                                 </select>
                                 if !selected_name.is_empty() {
                                     <button type="button" class="choreo-dancer-remove" onclick={on_remove_click}>
-                                        { "Fjern" }
+                                        { "Remove" }
                                     </button>
                                 }
                             </div>
