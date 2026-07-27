@@ -342,7 +342,7 @@ pub fn info_page(props: &InfoPageProps) -> Html {
 
     html! {
         <div class="page about-choreo-container">
-            <div class="arcadefont">
+
                 <h2>{ format!("Info page for choreography No. {}", number) }</h2>
 
                 <input
@@ -413,6 +413,12 @@ pub fn info_page(props: &InfoPageProps) -> Html {
                     />
                 </div>
 
+                // "Send to danceOmatic" is intentionally disabled: pushing uploads to the
+                // danceOmatic server isn't implemented yet.
+                <button class="main-action-button" disabled = true>
+                    { "Send to danceOmatic" }
+                </button>
+
                 <h2>{ "Dancers" }</h2>
                 <div class="choreo-dancers-section">
                     { for selected_dancers.iter().cloned().enumerate().map(|(index, selected_name)| {
@@ -451,14 +457,13 @@ pub fn info_page(props: &InfoPageProps) -> Html {
                                 </select>
                                 if !selected_name.is_empty() {
                                     <button type="button" class="choreo-dancer-remove" onclick={on_remove_click}>
-                                        { "Remove" }
+                                        { "Delete" }
                                     </button>
                                 }
                             </div>
                         }
                     }) }
                 </div>
-            </div>
         </div>
     }
 }

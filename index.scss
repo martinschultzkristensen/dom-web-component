@@ -238,6 +238,17 @@ h6 {
   height: 100vh;
   overflow-x: auto;
   overflow-y: auto;
+
+  .main-action-button {
+    width: auto;
+    min-height: unset;
+    padding: 0.5rem 1.5rem;
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
 }
 
 .svg-arrow-in-about-top {
