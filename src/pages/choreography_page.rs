@@ -157,6 +157,20 @@ pub fn choreography_page() -> Html {
             draft_choreographies.set(updated);
         })
     };
+    
+    let on_demo_video_path_change = {
+    let draft_choreographies = draft_choreographies.clone();
+
+    Callback::from(move |(number, path): (u32, String)| {
+        let mut updated = (*draft_choreographies).clone();
+
+        if let Some(entry) = updated.iter_mut().find(|entry| entry.number == number) {
+            entry.demo_video_path = Some(path);
+        }
+
+        draft_choreographies.set(updated);
+    })
+};
 
     let on_title_change = {
         let draft_choreographies = draft_choreographies.clone();
@@ -242,6 +256,7 @@ pub fn choreography_page() -> Html {
             <VideoList
                 entries={(*draft_choreographies).clone()}
                 on_thumbnail_change={on_thumbnail_change}
+                on_demo_video_path_change={on_demo_video_path_change}
                 on_title_change={on_title_change}
                 on_duration_change={on_duration_change}
                 on_machine_change={on_machine_change}

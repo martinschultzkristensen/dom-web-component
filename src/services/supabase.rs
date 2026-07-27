@@ -318,6 +318,192 @@ pub async fn fetch_dancers() -> Result<Vec<DancerRow>, String> {
         .map_err(|e| format!("Could not read dancers response: {:?}", e))
 }
 
+#[derive(Serialize)]
+pub struct NewChoreography {
+    pub created_by: String,
+    pub title: String,
+    pub duration_seconds: i32,
+    pub description: String,
+    pub image_path: String,
+    pub demo_video_path: String,
+    pub choreo_video_path: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct InsertedChoreographyRow {
+    id: String,
+}
+
+#[derive(Serialize)]
+struct NewChoreographyDancer {
+    choreography_id: String,
+    dancer_id: String,
+    sort_order: i32,
+}
+
+#[derive(Serialize)]
+struct NewChoreographyMachine {
+    choreography_id: String,
+    machine_id: String,
+}
+
+async fn insert_choreography(choreography: NewChoreography) -> Result<String, String> {
+    let access_token = get_access_token().ok_or("User is not logged in".to_string())?;
+
+    let url = format!("{}/rest/v1/choreographies?select=id", SUPABASE_URL);
+
+    let response = Request::post(&url)
+        .header("apikey", SUPABASE_PUBLISHABLE_KEY)
+        .header("Authorization", &format!("Bearer {}", access_token))
+        .header("Content-Type", "application/json")
+        .header("Prefer", "return=representation")
+        .json(&choreography)
+        .map_err(|e| format!("Could not build choreography insert request: {:?}", e))?
+        .send()
+        .await
+        .map_err(|e| format!("Choreography insert failed: {:?}", e))?;
+
+    if !response.ok() {
+        let status = response.status();
+        let error_text = response
+            .text()
+            .await
+            .unwrap_or_else(|_| "Unknown choreography insert error".to_string());
+
+        return Err(format!(
+            "Choreography insert failed: {} {}",
+            status, error_text
+        ));
+    }
+
+    let mut rows: Vec<InsertedChoreographyRow> = response
+        .json()
+        .await
+        .map_err(|e| format!("Could not read choreography insert response: {:?}", e))?;
+
+    rows.pop()
+        .map(|row| row.id)
+        .ok_or("Choreography insert returned no id".to_string())
+}
+
+async fn insert_choreography_dancers(
+    choreography_id: &str,
+    dancer_ids: Vec<String>,
+) -> Result<(), String> {
+    let access_token = get_access_token().ok_or("User is not logged in".to_string())?;
+
+    if dancer_ids.is_empty() {
+        return Ok(());
+    }
+
+    let rows = dancer_ids
+        .into_iter()
+        .enumerate()
+        .map(|(index, dancer_id)| NewChoreographyDancer {
+            choreography_id: choreography_id.to_string(),
+            dancer_id,
+            sort_order: index as i32 + 1,
+        })
+        .collect::<Vec<NewChoreographyDancer>>();
+
+    let url = format!("{}/rest/v1/choreography_dancers", SUPABASE_URL);
+
+    let response = Request::post(&url)
+        .header("apikey", SUPABASE_PUBLISHABLE_KEY)
+        .header("Authorization", &format!("Bearer {}", access_token))
+        .header("Content-Type", "application/json")
+        .header("Prefer", "return=minimal")
+        .json(&rows)
+        .map_err(|e| format!("Could not build choreography dancers request: {:?}", e))?
+        .send()
+        .await
+        .map_err(|e| format!("Choreography dancers insert failed: {:?}", e))?;
+
+    if response.ok() {
+        Ok(())
+    } else {
+        let status = response.status();
+        let error_text = response
+            .text()
+            .await
+            .unwrap_or_else(|_| "Unknown choreography dancers insert error".to_string());
+
+        Err(format!(
+            "Choreography dancers insert failed: {} {}",
+            status, error_text
+        ))
+    }
+}
+
+async fn insert_choreography_machine(
+    choreography_id: &str,
+    machine_id: &str,
+) -> Result<(), String> {
+    let access_token = get_access_token().ok_or("User is not logged in".to_string())?;
+
+    let row = NewChoreographyMachine {
+        choreography_id: choreography_id.to_string(),
+        machine_id: machine_id.to_string(),
+    };
+
+    let url = format!("{}/rest/v1/choreography_machines", SUPABASE_URL);
+
+    let response = Request::post(&url)
+        .header("apikey", SUPABASE_PUBLISHABLE_KEY)
+        .header("Authorization", &format!("Bearer {}", access_token))
+        .header("Content-Type", "application/json")
+        .header("Prefer", "return=minimal")
+        .json(&row)
+        .map_err(|e| format!("Could not build choreography machine request: {:?}", e))?
+        .send()
+        .await
+        .map_err(|e| format!("Choreography machine insert failed: {:?}", e))?;
+
+    if response.ok() {
+        Ok(())
+    } else {
+        let status = response.status();
+        let error_text = response
+            .text()
+            .await
+            .unwrap_or_else(|_| "Unknown choreography machine insert error".to_string());
+
+        Err(format!(
+            "Choreography machine insert failed: {} {}",
+            status, error_text
+        ))
+    }
+}
+
+pub async fn submit_choreography(
+    title: String,
+    duration_seconds: i32,
+    description: String,
+    image_path: String,
+    demo_video_path: String,
+    choreo_video_path: String,
+    dancer_ids: Vec<String>,
+    machine_id: String,
+) -> Result<String, String> {
+    let created_by = get_current_user_id().ok_or("Missing user id".to_string())?;
+
+    let choreography_id = insert_choreography(NewChoreography {
+        created_by,
+        title,
+        duration_seconds,
+        description,
+        image_path,
+        demo_video_path,
+        choreo_video_path,
+    })
+    .await?;
+
+    insert_choreography_dancers(&choreography_id, dancer_ids).await?;
+    insert_choreography_machine(&choreography_id, &machine_id).await?;
+
+    Ok(choreography_id)
+}
+
 fn sanitize_file_name(file_name: &str) -> String {
     let cleaned: String = file_name
         .chars()
@@ -331,7 +517,7 @@ fn sanitize_file_name(file_name: &str) -> String {
         .collect();
 
     if cleaned.trim().is_empty() {
-        "image.png".to_string()
+    "file".to_string()
     } else {
         cleaned
     }
@@ -379,6 +565,64 @@ pub async fn upload_dancer_image(file: File) -> Result<String, String> {
             .unwrap_or_else(|_| "Unknown image upload error".to_string());
 
         Err(format!("Image upload failed: {} {}", status, error_text))
+    }
+}
+
+pub async fn upload_choreography_file(
+    file: File,
+    file_role: &str,
+) -> Result<String, String> {
+    let access_token = get_access_token().ok_or("User is not logged in".to_string())?;
+    let user_id = get_current_user_id().ok_or("Missing user id".to_string())?;
+
+    let file_name = sanitize_file_name(&file.name());
+    let timestamp = js_sys::Date::now() as u64;
+
+    let file_path = format!(
+        "{}/choreography-drafts/{}_{}_{}",
+        user_id,
+        file_role,
+        timestamp,
+        file_name
+    );
+
+    let content_type = if file.type_().is_empty() {
+        "application/octet-stream".to_string()
+    } else {
+        file.type_()
+    };
+
+    let url = format!(
+        "{}/storage/v1/object/choreography-files/{}",
+        SUPABASE_URL,
+        file_path
+    );
+
+    let response = Request::post(&url)
+        .header("apikey", SUPABASE_PUBLISHABLE_KEY)
+        .header("Authorization", &format!("Bearer {}", access_token))
+        .header("Content-Type", &content_type)
+        .header("x-upsert", "true")
+        .body(file)
+        .map_err(|e| format!("Could not build choreography file upload request: {:?}", e))?
+        .send()
+        .await
+        .map_err(|e| format!("Choreography file upload failed: {:?}", e))?;
+
+    if response.ok() {
+        Ok(file_path)
+    } else {
+        let status = response.status();
+        let error_text = response
+            .text()
+            .await
+            .unwrap_or_else(|_| "Unknown choreography file upload error".to_string());
+
+        Err(format!(
+            "Choreography file upload failed: {} {}",
+            status,
+            error_text
+        ))
     }
 }
 

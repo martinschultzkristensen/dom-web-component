@@ -1,6 +1,10 @@
+use crate::Route;
+use yew_router::prelude::use_navigator;
 use crate::components::molecules::video_list::ChoreographyEntry;
 use crate::pages::choreography_page::DRAFT_CHOREOGRAPHIES_STORAGE_KEY;
-use crate::services::supabase::{fetch_dancers, DancerRow};
+use crate::services::supabase::{
+    fetch_dancers, submit_choreography, upload_choreography_file, DancerRow,
+};
 use crate::video_thumbnail::extract_video_thumbnail;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::Closure;
@@ -67,7 +71,13 @@ struct ChoreographyInfo {
     choreo_image: Option<String>,
 
     #[serde(default)]
+    choreo_image_path: Option<String>,
+
+    #[serde(default)]
     choreo_video_thumbnail: Option<String>,
+
+    #[serde(default)]
+    choreo_video_path: Option<String>,
 
     #[serde(default)]
     description: String,
@@ -106,17 +116,85 @@ fn save_choreography_info(number: u32, info: &ChoreographyInfo) {
     }
 }
 
+fn remove_submitted_choreography_draft(number: u32) {
+    if let Some(storage) = web_sys::window().and_then(|window| window.local_storage().ok().flatten()) {
+        if let Ok(Some(json)) = storage.get_item(DRAFT_CHOREOGRAPHIES_STORAGE_KEY) {
+            if let Ok(mut entries) = serde_json::from_str::<Vec<ChoreographyEntry>>(&json) {
+                entries.retain(|entry| entry.number != number);
+
+                for (index, entry) in entries.iter_mut().enumerate() {
+                    entry.number = index as u32 + 1;
+                }
+
+                if let Ok(updated_json) = serde_json::to_string(&entries) {
+                    let _ = storage.set_item(DRAFT_CHOREOGRAPHIES_STORAGE_KEY, &updated_json);
+                }
+            }
+        }
+
+        let _ = storage.remove_item(&storage_key(number));
+    }
+}
+
 fn show_alert(message: &str) {
     if let Some(window) = web_sys::window() {
         let _ = window.alert_with_message(message);
     }
 }
 
+fn parse_duration_seconds(duration: &str) -> Result<i32, String> {
+    let value = duration.trim();
+
+    if value.is_empty() {
+        return Err("Duration is empty".to_string());
+    }
+
+    if let Some((minutes, seconds)) = value.split_once(':') {
+        let minutes: i32 = minutes
+            .trim()
+            .parse()
+            .map_err(|_| "Duration must be written as minutes:seconds, for example 5:34".to_string())?;
+
+        let seconds: i32 = seconds
+            .trim()
+            .parse()
+            .map_err(|_| "Duration must be written as minutes:seconds, for example 5:34".to_string())?;
+
+        if seconds >= 60 {
+            return Err("Seconds must be lower than 60".to_string());
+        }
+
+        return Ok(minutes * 60 + seconds);
+    }
+
+    if let Some((minutes, seconds)) = value.split_once('.') {
+        let minutes: i32 = minutes
+            .trim()
+            .parse()
+            .map_err(|_| "Duration must be written as minutes.seconds, for example 5.34".to_string())?;
+
+        let seconds: i32 = seconds
+            .trim()
+            .parse()
+            .map_err(|_| "Duration must be written as minutes.seconds, for example 5.34".to_string())?;
+
+        if seconds >= 60 {
+            return Err("Seconds must be lower than 60".to_string());
+        }
+
+        return Ok(minutes * 60 + seconds);
+    }
+
+    value
+        .parse::<i32>()
+        .map_err(|_| "Duration must be written as 5:34, 5.34 or total seconds".to_string())
+}
+
 fn validate_choreography_for_send(
     number: u32,
-    choreo_image: &Option<String>,
+    choreo_image_path: &Option<String>,
     description: &str,
-    choreo_video_thumbnail: &Option<String>,
+    choreo_video_path: &Option<String>,
     selected_dancer_ids: &[String],
 ) -> Vec<&'static str> {
     let mut missing_fields = Vec::new();
@@ -131,8 +209,8 @@ fn validate_choreography_for_send(
                 missing_fields.push("Duration");
             }
 
-            if entry.video_thumbnail.is_none() {
-                missing_fields.push("Demo video");
+            if entry.demo_video_path.is_none() {
+                missing_fields.push("Demo video upload");
             }
 
             if entry.target_machine.trim().is_empty() {
@@ -144,16 +222,16 @@ fn validate_choreography_for_send(
         }
     }
 
-    if choreo_image.is_none() {
-        missing_fields.push("Choreography image");
+    if choreo_image_path.is_none() {
+        missing_fields.push("Choreography image upload");
     }
 
     if description.trim().is_empty() {
         missing_fields.push("Description");
     }
 
-    if choreo_video_thumbnail.is_none() {
-        missing_fields.push("Choreography video");
+    if choreo_video_path.is_none() {
+        missing_fields.push("Choreography video upload");
     }
 
     if non_empty(selected_dancer_ids).len() < 2 {
@@ -166,10 +244,13 @@ fn validate_choreography_for_send(
 #[function_component(InfoPage)]
 pub fn info_page(props: &InfoPageProps) -> Html {
     let number = props.number;
+    let navigator = use_navigator();
     let saved_info = load_choreography_info(number);
 
     let initial_choreo_image = saved_info.choreo_image.clone();
+    let initial_choreo_image_path = saved_info.choreo_image_path.clone();
     let initial_choreo_video_thumbnail = saved_info.choreo_video_thumbnail.clone();
+    let initial_choreo_video_path = saved_info.choreo_video_path.clone();
     let initial_description = saved_info.description.clone();
     let initial_dancer_ids = non_empty(&saved_info.dancer_ids);
 
@@ -177,16 +258,27 @@ pub fn info_page(props: &InfoPageProps) -> Html {
     let target_machine_label = use_memo(number, |number| load_target_machine_label(*number));
 
     let choreo_image = use_state(move || initial_choreo_image);
+    let choreo_image_path = use_state(move || initial_choreo_image_path);
     let choreo_video_thumbnail = use_state(move || initial_choreo_video_thumbnail);
+    let choreo_video_path = use_state(move || initial_choreo_video_path);
     let description = use_state(move || initial_description);
     let selected_dancer_ids = use_state(move || initial_dancer_ids);
 
     let all_dancers = use_state(Vec::<DancerOption>::new);
     let dancers_error = use_state(|| None::<String>);
     let is_dancer_picker_open = use_state(|| false);
+    let is_submitting = use_state(|| false);
+    let submitted_choreography_id = use_state(|| None::<String>);
 
     let is_dragging_over_image = use_state(|| false);
     let is_dragging_over_video = use_state(|| false);
+
+    let is_image_uploading = use_state(|| false);
+    let image_upload_error = use_state(|| None::<String>);
+
+    let is_choreo_video_uploading = use_state(|| false);
+    let choreo_video_upload_error = use_state(|| None::<String>);
+
     let image_input_ref = use_node_ref();
     let video_input_ref = use_node_ref();
 
@@ -214,14 +306,18 @@ pub fn info_page(props: &InfoPageProps) -> Html {
 
     {
         let choreo_image = choreo_image.clone();
+        let choreo_image_path = choreo_image_path.clone();
         let choreo_video_thumbnail = choreo_video_thumbnail.clone();
+        let choreo_video_path = choreo_video_path.clone();
         let description = description.clone();
         let selected_dancer_ids = selected_dancer_ids.clone();
 
         use_effect_with(
             (
                 (*choreo_image).clone(),
+                (*choreo_image_path).clone(),
                 (*choreo_video_thumbnail).clone(),
+                (*choreo_video_path).clone(),
                 (*description).clone(),
                 (*selected_dancer_ids).clone(),
             ),
@@ -230,7 +326,9 @@ pub fn info_page(props: &InfoPageProps) -> Html {
                     number,
                     &ChoreographyInfo {
                         choreo_image: (*choreo_image).clone(),
+                        choreo_image_path: (*choreo_image_path).clone(),
                         choreo_video_thumbnail: (*choreo_video_thumbnail).clone(),
+                        choreo_video_path: (*choreo_video_path).clone(),
                         description: (*description).clone(),
                         dancer_ids: non_empty(&*selected_dancer_ids),
                     },
@@ -253,8 +351,14 @@ pub fn info_page(props: &InfoPageProps) -> Html {
 
     let on_image_file = {
         let choreo_image = choreo_image.clone();
+        let choreo_image_path = choreo_image_path.clone();
+        let is_image_uploading = is_image_uploading.clone();
+        let image_upload_error = image_upload_error.clone();
 
         Callback::from(move |file: File| {
+            let file_for_preview = file.clone();
+            let file_for_upload = file;
+
             let Ok(reader) = FileReader::new() else {
                 return;
             };
@@ -273,7 +377,29 @@ pub fn info_page(props: &InfoPageProps) -> Html {
             reader.set_onload(Some(onload.as_ref().unchecked_ref()));
             onload.forget();
 
-            let _ = reader.read_as_data_url(&file);
+            let _ = reader.read_as_data_url(&file_for_preview);
+
+            let choreo_image_path = choreo_image_path.clone();
+            let is_image_uploading = is_image_uploading.clone();
+            let image_upload_error = image_upload_error.clone();
+
+            is_image_uploading.set(true);
+            image_upload_error.set(None);
+            choreo_image_path.set(None);
+
+            spawn_local(async move {
+                match upload_choreography_file(file_for_upload, "choreo_image").await {
+                    Ok(path) => {
+                        choreo_image_path.set(Some(path));
+                        image_upload_error.set(None);
+                    }
+                    Err(message) => {
+                        image_upload_error.set(Some(message));
+                    }
+                }
+
+                is_image_uploading.set(false);
+            });
         })
     };
 
@@ -338,16 +464,44 @@ pub fn info_page(props: &InfoPageProps) -> Html {
 
     let on_video_file = {
         let choreo_video_thumbnail = choreo_video_thumbnail.clone();
+        let choreo_video_path = choreo_video_path.clone();
+        let is_choreo_video_uploading = is_choreo_video_uploading.clone();
+        let choreo_video_upload_error = choreo_video_upload_error.clone();
 
         Callback::from(move |file: File| {
+            let file_for_thumbnail = file.clone();
+            let file_for_upload = file;
+
             let choreo_video_thumbnail = choreo_video_thumbnail.clone();
 
             extract_video_thumbnail(
-                file,
+                file_for_thumbnail,
                 Callback::from(move |data_url: String| {
                     choreo_video_thumbnail.set(Some(data_url));
                 }),
             );
+
+            let choreo_video_path = choreo_video_path.clone();
+            let is_choreo_video_uploading = is_choreo_video_uploading.clone();
+            let choreo_video_upload_error = choreo_video_upload_error.clone();
+
+            is_choreo_video_uploading.set(true);
+            choreo_video_upload_error.set(None);
+            choreo_video_path.set(None);
+
+            spawn_local(async move {
+                match upload_choreography_file(file_for_upload, "choreo_video").await {
+                    Ok(path) => {
+                        choreo_video_path.set(Some(path));
+                        choreo_video_upload_error.set(None);
+                    }
+                    Err(message) => {
+                        choreo_video_upload_error.set(Some(message));
+                    }
+                }
+
+                is_choreo_video_uploading.set(false);
+            });
         })
     };
 
@@ -457,20 +611,44 @@ pub fn info_page(props: &InfoPageProps) -> Html {
     };
 
     let on_send_click = {
-        let choreo_image = choreo_image.clone();
-        let choreo_video_thumbnail = choreo_video_thumbnail.clone();
+        let choreo_image_path = choreo_image_path.clone();
+        let choreo_video_path = choreo_video_path.clone();
         let description = description.clone();
         let selected_dancer_ids = selected_dancer_ids.clone();
+        let is_image_uploading = is_image_uploading.clone();
+        let is_choreo_video_uploading = is_choreo_video_uploading.clone();
+        let is_submitting = is_submitting.clone();
+        let submitted_choreography_id = submitted_choreography_id.clone();
 
         Callback::from(move |_| {
+            if *is_submitting {
+                show_alert("Submit is already running. Please wait.");
+                return;
+            }
+
+            if (*submitted_choreography_id).is_some() {
+                show_alert("This choreography has already been submitted for admin approval.");
+                return;
+            }
+
+            if *is_image_uploading || *is_choreo_video_uploading {
+                show_alert("Please wait until image and video uploads are finished.");
+                return;
+            }
+
+            let Some(draft_entry) = load_draft_entry(number) else {
+                show_alert("Choreography draft was not found.");
+                return;
+            };
+
             let description_value = (*description).clone();
             let selected_ids = (*selected_dancer_ids).clone();
 
             let missing_fields = validate_choreography_for_send(
                 number,
-                &*choreo_image,
+                &*choreo_image_path,
                 &description_value,
-                &*choreo_video_thumbnail,
+                &*choreo_video_path,
                 &selected_ids,
             );
 
@@ -488,9 +666,65 @@ pub fn info_page(props: &InfoPageProps) -> Html {
                 return;
             }
 
-            show_alert(
-                "Ready to send. Supabase upload and database submit will be connected in the next step.",
-            );
+            let duration_seconds = match parse_duration_seconds(&draft_entry.duration) {
+                Ok(seconds) => seconds,
+                Err(message) => {
+                    show_alert(&message);
+                    return;
+                }
+            };
+
+            let Some(image_path) = (*choreo_image_path).clone() else {
+                show_alert("Choreography image upload is missing.");
+                return;
+            };
+
+            let Some(demo_video_path) = draft_entry.demo_video_path.clone() else {
+                show_alert("Demo video upload is missing.");
+                return;
+            };
+
+            let Some(choreo_video_path_value) = (*choreo_video_path).clone() else {
+                show_alert("Choreography video upload is missing.");
+                return;
+            };
+
+            let machine_id = draft_entry.target_machine.clone();
+
+            let is_submitting = is_submitting.clone();
+            let submitted_choreography_id = submitted_choreography_id.clone();
+            let navigator = navigator.clone();
+
+            is_submitting.set(true);
+
+            spawn_local(async move {
+                match submit_choreography(
+                    draft_entry.title,
+                    duration_seconds,
+                    description_value,
+                    image_path,
+                    demo_video_path,
+                    choreo_video_path_value,
+                    selected_ids,
+                    machine_id,
+                )
+                .await
+                {
+                    Ok(choreography_id) => {
+                        submitted_choreography_id.set(Some(choreography_id));
+                        remove_submitted_choreography_draft(number);
+
+                        if let Some(navigator) = navigator {
+                            navigator.push(&Route::ChoreographyPage);
+                        }
+                    }
+                    Err(message) => {
+                        show_alert(&format!("Submit failed:\n\n{}", message));
+                    }
+                }
+
+                is_submitting.set(false);
+            });
         })
     };
 
@@ -540,6 +774,14 @@ pub fn info_page(props: &InfoPageProps) -> Html {
                             <span>{ "Upload Image" }</span>
                         }
 
+                        if *is_image_uploading {
+                            <p class="info-message">{ "Uploading image..." }</p>
+                        }
+
+                        if let Some(message) = &*image_upload_error {
+                            <p class="error-message">{ message }</p>
+                        }
+
                         <input
                             type="file"
                             accept="image/*"
@@ -576,6 +818,14 @@ pub fn info_page(props: &InfoPageProps) -> Html {
                         />
                     } else {
                         <span>{ "Upload Choreography Video" }</span>
+                    }
+
+                    if *is_choreo_video_uploading {
+                        <p class="info-message">{ "Uploading video..." }</p>
+                    }
+
+                    if let Some(message) = &*choreo_video_upload_error {
+                        <p class="error-message">{ message }</p>
                     }
 
                     <input
@@ -687,12 +937,20 @@ pub fn info_page(props: &InfoPageProps) -> Html {
                 </div>
 
                 <div class="submit-choreography-panel">
-                   <button
+                    <button
                         type="button"
                         class="send-choreography-button"
                         onclick={on_send_click}
                     >
-                        { format!("Send to {}", (*target_machine_label).clone()) }
+                        {
+                            if *is_submitting {
+                                "Sending...".to_string()
+                            } else if (*submitted_choreography_id).is_some() {
+                                "Submitted".to_string()
+                            } else {
+                                format!("Send to {}", (*target_machine_label).clone())
+                            }
+                        }
                     </button>
                 </div>
             </div>

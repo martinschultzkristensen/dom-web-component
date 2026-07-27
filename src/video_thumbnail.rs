@@ -1,68 +1,111 @@
-//src/video_thumbnail.rs
+use wasm_bindgen::closure::Closure;
 use wasm_bindgen::JsCast;
-use wasm_bindgen::prelude::Closure;
-use web_sys::{CanvasRenderingContext2d, Event, File, HtmlCanvasElement, HtmlVideoElement, Url};
-use yew::prelude::Callback;
+use web_sys::{
+    CanvasRenderingContext2d, Event, File, HtmlCanvasElement, HtmlVideoElement, Url,
+};
+use yew::Callback;
 
-// Draws the first frame of `file` onto an off-screen canvas and reports the
-// resulting base64 PNG via `on_thumbnail`. Same base64-data-URL convention
-// used throughout the app for image uploads.
-pub fn extract_video_thumbnail(file: File, on_thumbnail: Callback<String>) {
-    let Ok(object_url) = Url::create_object_url_with_blob(&file) else {
-        return;
-    };
-    let Some(document) = web_sys::window().and_then(|w| w.document()) else {
-        return;
-    };
-    let Some(body) = document.body() else {
-        return;
-    };
-    let Some(video) = document
-        .create_element("video")
-        .ok()
-        .and_then(|el| el.dyn_into::<HtmlVideoElement>().ok())
-    else {
+const THUMBNAIL_TIME_SECONDS: f64 = 5.0;
+
+pub fn extract_video_thumbnail(file: File, callback: Callback<String>) {
+    let Ok(video_url) = Url::create_object_url_with_blob(&file) else {
         return;
     };
 
-    video.set_src(&object_url);
+    let Some(window) = web_sys::window() else {
+        let _ = Url::revoke_object_url(&video_url);
+        return;
+    };
+
+    let Some(document) = window.document() else {
+        let _ = Url::revoke_object_url(&video_url);
+        return;
+    };
+
+    let Ok(video_element) = document.create_element("video") else {
+        let _ = Url::revoke_object_url(&video_url);
+        return;
+    };
+
+    let Ok(video) = video_element.dyn_into::<HtmlVideoElement>() else {
+        let _ = Url::revoke_object_url(&video_url);
+        return;
+    };
+
+    video.set_src(&video_url);
     video.set_muted(true);
-    let _ = video.style().set_property("display", "none");
-    let _ = body.append_child(&video);
+    video.set_preload("metadata");
+    let _ = video.set_attribute("playsinline", "true");
 
-    let video_for_capture = video.clone();
-    let object_url_for_cleanup = object_url.clone();
+    let video_for_seeked = video.clone();
+    let video_url_for_seeked = video_url.clone();
+    let document_for_seeked = document.clone();
+    let callback_for_seeked = callback.clone();
 
-    let onloadeddata = Closure::wrap(Box::new(move |_event: Event| {
-        if let Some(canvas) = document
-            .create_element("canvas")
-            .ok()
-            .and_then(|el| el.dyn_into::<HtmlCanvasElement>().ok())
-        {
-            canvas.set_width(video_for_capture.video_width());
-            canvas.set_height(video_for_capture.video_height());
+    let on_seeked = Closure::wrap(Box::new(move |_event: Event| {
+        let width = if video_for_seeked.video_width() > 0 {
+            video_for_seeked.video_width()
+        } else {
+            320
+        };
 
-            if let Some(ctx) = canvas
-                .get_context("2d")
-                .ok()
-                .flatten()
-                .and_then(|ctx| ctx.dyn_into::<CanvasRenderingContext2d>().ok())
-            {
-                if ctx
-                    .draw_image_with_html_video_element(&video_for_capture, 0.0, 0.0)
-                    .is_ok()
-                {
-                    if let Ok(data_url) = canvas.to_data_url() {
-                        on_thumbnail.emit(data_url);
-                    }
-                }
-            }
+        let height = if video_for_seeked.video_height() > 0 {
+            video_for_seeked.video_height()
+        } else {
+            180
+        };
+
+        let Ok(canvas_element) = document_for_seeked.create_element("canvas") else {
+            let _ = Url::revoke_object_url(&video_url_for_seeked);
+            return;
+        };
+
+        let Ok(canvas) = canvas_element.dyn_into::<HtmlCanvasElement>() else {
+            let _ = Url::revoke_object_url(&video_url_for_seeked);
+            return;
+        };
+
+        canvas.set_width(width);
+        canvas.set_height(height);
+
+        let Ok(Some(context_value)) = canvas.get_context("2d") else {
+            let _ = Url::revoke_object_url(&video_url_for_seeked);
+            return;
+        };
+
+        let Ok(context) = context_value.dyn_into::<CanvasRenderingContext2d>() else {
+            let _ = Url::revoke_object_url(&video_url_for_seeked);
+            return;
+        };
+
+        let _ = context.draw_image_with_html_video_element(&video_for_seeked, 0.0, 0.0);
+
+        if let Ok(data_url) = canvas.to_data_url_with_type("image/jpeg") {
+            callback_for_seeked.emit(data_url);
         }
 
-        video_for_capture.remove();
-        let _ = Url::revoke_object_url(&object_url_for_cleanup);
+        let _ = Url::revoke_object_url(&video_url_for_seeked);
     }) as Box<dyn FnMut(Event)>);
 
-    video.set_onloadeddata(Some(onloadeddata.as_ref().unchecked_ref()));
-    onloadeddata.forget();
+    video.set_onseeked(Some(on_seeked.as_ref().unchecked_ref()));
+    on_seeked.forget();
+
+    let video_for_metadata = video.clone();
+
+    let on_loaded_metadata = Closure::wrap(Box::new(move |_event: Event| {
+        let duration = video_for_metadata.duration();
+
+        let thumbnail_time = if duration.is_finite() && duration > THUMBNAIL_TIME_SECONDS + 0.5 {
+            THUMBNAIL_TIME_SECONDS
+        } else if duration.is_finite() && duration > 0.5 {
+            duration / 2.0
+        } else {
+            0.1
+        };
+
+        video_for_metadata.set_current_time(thumbnail_time);
+    }) as Box<dyn FnMut(Event)>);
+
+    video.set_onloadedmetadata(Some(on_loaded_metadata.as_ref().unchecked_ref()));
+    on_loaded_metadata.forget();
 }
