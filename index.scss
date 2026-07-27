@@ -560,6 +560,7 @@ h6 {
 
 .main_menu-container {
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
   gap: 2rem;
@@ -633,6 +634,40 @@ h6 {
   text-align: center;
   padding: 1.5rem;
   border-radius: 16px;
+}
+
+// Panel content for the "Intro video" / "Load video" dropzones on main_page.rs,
+// shown in place of the toggle button once expanded.
+.video-dropzone-panel {
+  width: 100%;
+  height: 100%;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  box-sizing: border-box;
+
+  h3 {
+    margin: 0;
+    color: $teal;
+  }
+
+  .dropzone {
+    width: 100%;
+  }
+
+  .main-action-button {
+    min-height: unset;
+    padding: 0.5rem 1rem;
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
 }
 
 // positioning of logo_danceomatic in main menu page.
