@@ -1132,3 +1132,228 @@ body {
 .submitted-choreographies-section {
   padding-bottom: 120px;
 }
+
+.dancer-editor-panel {
+  width: min(100%, 950px);
+  border: 2px solid #ff6aa8;
+  border-radius: 14px;
+  background: #151316;
+  padding: 24px;
+  box-sizing: border-box;
+  margin: 28px 0 44px;
+}
+
+.dancer-editor-grid {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 28px;
+  align-items: start;
+}
+
+.dancer-image-dropzone {
+  width: 260px;
+  height: 260px;
+  border: 2px dashed #fff200;
+  border-radius: 12px;
+  background: #111;
+  color: #fff200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 16px;
+  box-sizing: border-box;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.dancer-image-dropzone img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  background: #000;
+}
+
+.dancer-editor-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.dancer-text-input {
+  width: 100%;
+  min-height: 52px;
+  background: #000;
+  border: 1px solid #fff200;
+  color: #fff200;
+  font-family: inherit;
+  font-size: 1em;
+  padding: 8px 12px;
+  box-sizing: border-box;
+}
+
+.dancer-editor-fields label {
+  color: #fff200;
+}
+
+.dancer-editor-fields input[type="range"] {
+  width: 100%;
+}
+
+.dancer-editor-actions {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.dancer-card-grid {
+  width: min(100%, 1100px);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 22px;
+  padding-bottom: 160px;
+}
+
+.dancer-card-new {
+  border: 2px solid #fff200;
+  border-radius: 14px;
+  background: #111;
+  color: #fff200;
+  overflow: hidden;
+}
+
+.dancer-card-image {
+  width: 100%;
+  height: 260px;
+  object-fit: contain;
+  object-position: center;
+  display: block;
+  background: #000;
+}
+
+.dancer-card-image-placeholder {
+  width: 100%;
+  height: 260px;
+  background: #000;
+  color: #fff200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 18px;
+  box-sizing: border-box;
+}
+
+.dancer-card-content {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.dancer-card-content h3 {
+  margin: 0;
+  font-size: 1.2em;
+}
+
+.dancer-stat-line {
+  display: grid;
+  grid-template-columns: 170px 1fr;
+  gap: 14px;
+  align-items: center;
+}
+
+.dancer-stat-bar {
+  height: 20px;
+  border: 1px solid #ff6aa8;
+  background: #242225;
+  overflow: hidden;
+}
+
+.dancer-stat-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff6aa8, #fff200);
+}
+
+.dancer-card-actions {
+  display: flex;
+  gap: 14px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.dancer-secondary-button {
+  min-width: 140px;
+  min-height: 54px;
+  border: 2px solid #fff200;
+  border-radius: 10px;
+  background: transparent;
+  color: #fff200;
+  font-family: inherit;
+  font-size: 0.95em;
+  cursor: pointer;
+}
+
+@media (max-width: 760px) {
+  .dancer-editor-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dancer-image-dropzone {
+    width: 100%;
+  }
+
+  .dancer-stat-line {
+    grid-template-columns: 1fr;
+  }
+}
+.dancer-card-editing {
+  grid-column: 1 / -1;
+  padding: 24px;
+  overflow: visible;
+}
+
+.dancer-card-editing .dancer-editor-grid {
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 36px;
+  width: 100%;
+}
+
+.dancer-card-editing .dancer-image-dropzone {
+  width: 320px;
+  height: 320px;
+}
+
+.dancer-card-editing .dancer-editor-fields {
+  min-width: 0;
+  width: 100%;
+}
+
+.dancer-card-editing .dancer-text-input {
+  width: 100%;
+  font-size: 1.1em;
+}
+
+.dancer-card-editing .main-action-button,
+.dancer-card-editing .small-remove-button {
+  min-width: 220px;
+  min-height: 68px;
+}
+
+.dancer-card-editing .dancer-editor-actions {
+  margin-top: 24px;
+  align-items: center;
+}
+
+@media (max-width: 900px) {
+  .dancer-card-editing .dancer-editor-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dancer-card-editing .dancer-image-dropzone {
+    width: 100%;
+    height: 320px;
+  }
+}
