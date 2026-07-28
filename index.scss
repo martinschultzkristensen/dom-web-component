@@ -1555,3 +1555,133 @@ body {
 .admin-review-card:first-child::before {
   display: none;
 }
+/* Main page hero/layout refinement */
+
+.main_menu-page {
+  width: 100%;
+  min-height: calc(100vh - 80px);
+  background: #151519;
+  color: #fff200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 32px 80px;
+  box-sizing: border-box;
+}
+
+.main_menu-hero {
+  width: 100vw;
+  max-width: none;
+  height: clamp(320px, 42vh, 520px);
+  object-fit: cover;
+  object-position: center;
+  display: block;
+  margin: 0 0 40px;
+
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 1) 58%,
+    rgba(0, 0, 0, 0) 100%
+  );
+
+  mask-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 1) 58%,
+    rgba(0, 0, 0, 0) 100%
+  );
+}
+
+.main_menu-description {
+  width: min(100%, 900px);
+  margin: 0 auto 56px;
+  color: #fff200;
+  text-align: center;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: clamp(16px, 1.45vw, 20px);
+  font-weight: 600;
+  line-height: 1.65;
+  letter-spacing: 0.01em;
+}
+
+.main_menu-container {
+  width: min(100%, 1280px);
+  display: grid;
+  grid-template-columns: repeat(4, minmax(220px, 1fr));
+  gap: 32px;
+  justify-content: center;
+  align-items: stretch;
+  margin: 0 auto;
+  padding: 0;
+}
+
+.main_menu-container .main-panel {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+}
+.main_menu-container .main-action-button {
+  width: 100%;
+  max-width: 300px;
+  height: 150px;
+  min-height: 150px;
+  max-height: 150px;
+  margin: 0;
+  border: 2px solid #fff200;
+  border-radius: 16px;
+  background: #252326;
+  color: #fff200;
+  font-size: clamp(18px, 1.5vw, 24px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.main_menu-container .dropzone {
+  width: 100%;
+  max-width: 300px;
+  height: 150px;
+  min-height: 150px;
+  max-height: 150px;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+@media (max-width: 1100px) {
+  .main_menu-container {
+    grid-template-columns: repeat(2, minmax(220px, 320px));
+  }
+}
+
+@media (max-width: 650px) {
+  .main_menu-page {
+    padding: 0 18px 60px;
+  }
+
+  .main_menu-hero {
+    height: 280px;
+    margin-bottom: 32px;
+  }
+
+  .main_menu-description {
+    margin-bottom: 40px;
+    font-size: 15px;
+  }
+
+  .main_menu-container {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .main_menu-container .main-action-button,
+  .main_menu-container .dropzone {
+    max-width: 100%;
+    min-height: 170px;
+  }
+}
