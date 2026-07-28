@@ -19,9 +19,6 @@ pub struct ChoreographyEntry {
     pub title: String,
 
     #[serde(default)]
-    pub duration: String,
-
-    #[serde(default)]
     pub target_machine: String,
 }
 
@@ -32,7 +29,6 @@ impl ChoreographyEntry {
             video_thumbnail: None,
             demo_video_path: None,
             title: String::new(),
-            duration: String::new(),
             target_machine: String::new(),
         }
     }
@@ -44,7 +40,6 @@ pub struct VideoListProps {
     pub on_thumbnail_change: Callback<(u32, String)>,
     pub on_demo_video_path_change: Callback<(u32, String)>,
     pub on_title_change: Callback<(u32, String)>,
-    pub on_duration_change: Callback<(u32, String)>,
     pub on_machine_change: Callback<(u32, String)>,
     pub on_add_info: Callback<u32>,
     pub on_remove: Callback<u32>,
@@ -62,7 +57,6 @@ pub fn video_list(props: &VideoListProps) -> Html {
                         on_thumbnail_change={props.on_thumbnail_change.clone()}
                         on_demo_video_path_change={props.on_demo_video_path_change.clone()}
                         on_title_change={props.on_title_change.clone()}
-                        on_duration_change={props.on_duration_change.clone()}
                         on_machine_change={props.on_machine_change.clone()}
                         on_add_info={props.on_add_info.clone()}
                         on_remove={props.on_remove.clone()}
@@ -79,7 +73,6 @@ struct VideoListItemProps {
     on_thumbnail_change: Callback<(u32, String)>,
     on_demo_video_path_change: Callback<(u32, String)>,
     on_title_change: Callback<(u32, String)>,
-    on_duration_change: Callback<(u32, String)>,
     on_machine_change: Callback<(u32, String)>,
     on_add_info: Callback<u32>,
     on_remove: Callback<u32>,
@@ -208,16 +201,6 @@ fn video_list_item(props: &VideoListItemProps) -> Html {
         })
     };
 
-    let on_duration_input = {
-        let on_duration_change = props.on_duration_change.clone();
-
-        Callback::from(move |event: InputEvent| {
-            if let Some(input) = event.target_dyn_into::<HtmlInputElement>() {
-                on_duration_change.emit((number, input.value()));
-            }
-        })
-    };
-
     let on_machine_select = {
         let on_machine_change = props.on_machine_change.clone();
 
@@ -250,7 +233,7 @@ fn video_list_item(props: &VideoListItemProps) -> Html {
                 { format!("No. {}", number) }
             </div>
 
-                        <div
+            <div
                 class="dropzone"
                 onclick={on_dropzone_click}
                 ondragover={on_dropzone_dragover}
@@ -283,20 +266,13 @@ fn video_list_item(props: &VideoListItemProps) -> Html {
                     onchange={on_file_change}
                 />
             </div>
-            
+
             <div class="video-list-fields">
                 <input
                     type="text"
                     placeholder="Title:"
                     value={entry.title.clone()}
                     oninput={on_title_input}
-                />
-
-                <input
-                    type="text"
-                    placeholder="Duration:"
-                    value={entry.duration.clone()}
-                    oninput={on_duration_input}
                 />
 
                 <select

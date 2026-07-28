@@ -11,7 +11,7 @@ use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::spawn_local;
 use web_sys::{
-    DragEvent, Event, File, FileReader, HtmlInputElement, HtmlTextAreaElement,
+    DragEvent, Event, File, FileReader, HtmlInputElement, HtmlTextAreaElement, HtmlVideoElement, Url,
 };
 use yew::prelude::*;
 
@@ -80,6 +80,9 @@ struct ChoreographyInfo {
     choreo_video_path: Option<String>,
 
     #[serde(default)]
+    choreo_video_duration_seconds: Option<i32>,
+
+    #[serde(default)]
     description: String,
 
     #[serde(default)]
@@ -142,52 +145,68 @@ fn show_alert(message: &str) {
     }
 }
 
-fn parse_duration_seconds(duration: &str) -> Result<i32, String> {
-    let value = duration.trim();
+fn format_duration_seconds(total_seconds: i32) -> String {
+    let safe_seconds = total_seconds.max(0);
+    let minutes = safe_seconds / 60;
+    let seconds = safe_seconds % 60;
 
-    if value.is_empty() {
-        return Err("Duration is empty".to_string());
-    }
+    format!("{}:{:02}", minutes, seconds)
+}
 
-    if let Some((minutes, seconds)) = value.split_once(':') {
-        let minutes: i32 = minutes
-            .trim()
-            .parse()
-            .map_err(|_| "Duration must be written as minutes:seconds, for example 5:34".to_string())?;
+fn extract_video_duration_seconds(file: File, on_duration: Callback<Result<i32, String>>) {
+    let Some(document) = web_sys::window().and_then(|window| window.document()) else {
+        on_duration.emit(Err("Could not read video duration: browser document is not available.".to_string()));
+        return;
+    };
 
-        let seconds: i32 = seconds
-            .trim()
-            .parse()
-            .map_err(|_| "Duration must be written as minutes:seconds, for example 5:34".to_string())?;
+    let Ok(element) = document.create_element("video") else {
+        on_duration.emit(Err("Could not read video duration: video element could not be created.".to_string()));
+        return;
+    };
 
-        if seconds >= 60 {
-            return Err("Seconds must be lower than 60".to_string());
+    let Ok(video) = element.dyn_into::<HtmlVideoElement>() else {
+        on_duration.emit(Err("Could not read video duration: video element is invalid.".to_string()));
+        return;
+    };
+
+    let Ok(object_url) = Url::create_object_url_with_blob(&file) else {
+        on_duration.emit(Err("Could not read video duration: object URL could not be created.".to_string()));
+        return;
+    };
+
+    video.set_preload("metadata");
+
+    let video_for_loaded = video.clone();
+    let object_url_for_loaded = object_url.clone();
+    let on_duration_for_loaded = on_duration.clone();
+
+    let onloadedmetadata = Closure::<dyn FnMut(Event)>::wrap(Box::new(move |_event: Event| {
+        let duration = video_for_loaded.duration();
+        let _ = Url::revoke_object_url(&object_url_for_loaded);
+
+        if duration.is_finite() && duration > 0.0 {
+            on_duration_for_loaded.emit(Ok(duration.ceil() as i32));
+        } else {
+            on_duration_for_loaded.emit(Err("Could not read video duration from the selected choreography video.".to_string()));
         }
+    }));
 
-        return Ok(minutes * 60 + seconds);
-    }
+    let object_url_for_error = object_url.clone();
+    let on_duration_for_error = on_duration.clone();
 
-    if let Some((minutes, seconds)) = value.split_once('.') {
-        let minutes: i32 = minutes
-            .trim()
-            .parse()
-            .map_err(|_| "Duration must be written as minutes.seconds, for example 5.34".to_string())?;
+    let onerror = Closure::<dyn FnMut(Event)>::wrap(Box::new(move |_event: Event| {
+        let _ = Url::revoke_object_url(&object_url_for_error);
+        on_duration_for_error.emit(Err("Could not read video duration. Please try another choreography video file.".to_string()));
+    }));
 
-        let seconds: i32 = seconds
-            .trim()
-            .parse()
-            .map_err(|_| "Duration must be written as minutes.seconds, for example 5.34".to_string())?;
+    video.set_onloadedmetadata(Some(onloadedmetadata.as_ref().unchecked_ref()));
+    video.set_onerror(Some(onerror.as_ref().unchecked_ref()));
 
-        if seconds >= 60 {
-            return Err("Seconds must be lower than 60".to_string());
-        }
+    onloadedmetadata.forget();
+    onerror.forget();
 
-        return Ok(minutes * 60 + seconds);
-    }
-
-    value
-        .parse::<i32>()
-        .map_err(|_| "Duration must be written as 5:34, 5.34 or total seconds".to_string())
+    video.set_src(&object_url);
+    video.load();
 }
 
 fn validate_choreography_for_send(
@@ -195,6 +214,7 @@ fn validate_choreography_for_send(
     choreo_image_path: &Option<String>,
     description: &str,
     choreo_video_path: &Option<String>,
+    choreo_video_duration_seconds: &Option<i32>,
     selected_dancer_ids: &[String],
 ) -> Vec<&'static str> {
     let mut missing_fields = Vec::new();
@@ -203,10 +223,6 @@ fn validate_choreography_for_send(
         Some(entry) => {
             if entry.title.trim().is_empty() {
                 missing_fields.push("Title");
-            }
-
-            if entry.duration.trim().is_empty() {
-                missing_fields.push("Duration");
             }
 
             if entry.demo_video_path.is_none() {
@@ -234,6 +250,10 @@ fn validate_choreography_for_send(
         missing_fields.push("Choreography video upload");
     }
 
+    if choreo_video_duration_seconds.is_none() {
+        missing_fields.push("Choreography video duration");
+    }
+
     if non_empty(selected_dancer_ids).len() < 2 {
         missing_fields.push("At least two dancers");
     }
@@ -251,6 +271,7 @@ pub fn info_page(props: &InfoPageProps) -> Html {
     let initial_choreo_image_path = saved_info.choreo_image_path.clone();
     let initial_choreo_video_thumbnail = saved_info.choreo_video_thumbnail.clone();
     let initial_choreo_video_path = saved_info.choreo_video_path.clone();
+    let initial_choreo_video_duration_seconds = saved_info.choreo_video_duration_seconds;
     let initial_description = saved_info.description.clone();
     let initial_dancer_ids = non_empty(&saved_info.dancer_ids);
 
@@ -261,6 +282,7 @@ pub fn info_page(props: &InfoPageProps) -> Html {
     let choreo_image_path = use_state(move || initial_choreo_image_path);
     let choreo_video_thumbnail = use_state(move || initial_choreo_video_thumbnail);
     let choreo_video_path = use_state(move || initial_choreo_video_path);
+    let choreo_video_duration_seconds = use_state(move || initial_choreo_video_duration_seconds);
     let description = use_state(move || initial_description);
     let selected_dancer_ids = use_state(move || initial_dancer_ids);
 
@@ -309,6 +331,7 @@ pub fn info_page(props: &InfoPageProps) -> Html {
         let choreo_image_path = choreo_image_path.clone();
         let choreo_video_thumbnail = choreo_video_thumbnail.clone();
         let choreo_video_path = choreo_video_path.clone();
+        let choreo_video_duration_seconds = choreo_video_duration_seconds.clone();
         let description = description.clone();
         let selected_dancer_ids = selected_dancer_ids.clone();
 
@@ -318,6 +341,7 @@ pub fn info_page(props: &InfoPageProps) -> Html {
                 (*choreo_image_path).clone(),
                 (*choreo_video_thumbnail).clone(),
                 (*choreo_video_path).clone(),
+                (*choreo_video_duration_seconds).clone(),
                 (*description).clone(),
                 (*selected_dancer_ids).clone(),
             ),
@@ -329,6 +353,7 @@ pub fn info_page(props: &InfoPageProps) -> Html {
                         choreo_image_path: (*choreo_image_path).clone(),
                         choreo_video_thumbnail: (*choreo_video_thumbnail).clone(),
                         choreo_video_path: (*choreo_video_path).clone(),
+                        choreo_video_duration_seconds: (*choreo_video_duration_seconds).clone(),
                         description: (*description).clone(),
                         dancer_ids: non_empty(&*selected_dancer_ids),
                     },
@@ -465,21 +490,19 @@ pub fn info_page(props: &InfoPageProps) -> Html {
     let on_video_file = {
         let choreo_video_thumbnail = choreo_video_thumbnail.clone();
         let choreo_video_path = choreo_video_path.clone();
+        let choreo_video_duration_seconds = choreo_video_duration_seconds.clone();
         let is_choreo_video_uploading = is_choreo_video_uploading.clone();
         let choreo_video_upload_error = choreo_video_upload_error.clone();
 
         Callback::from(move |file: File| {
             let file_for_thumbnail = file.clone();
+            let file_for_duration = file.clone();
             let file_for_upload = file;
 
             let choreo_video_thumbnail = choreo_video_thumbnail.clone();
-
-            extract_video_thumbnail(
-                file_for_thumbnail,
-                Callback::from(move |data_url: String| {
-                    choreo_video_thumbnail.set(Some(data_url));
-                }),
-            );
+            let choreo_video_duration_seconds_for_reader = choreo_video_duration_seconds.clone();
+            let choreo_video_duration_seconds_for_reset = choreo_video_duration_seconds.clone();
+            let choreo_video_upload_error_for_duration = choreo_video_upload_error.clone();
 
             let choreo_video_path = choreo_video_path.clone();
             let is_choreo_video_uploading = is_choreo_video_uploading.clone();
@@ -488,6 +511,28 @@ pub fn info_page(props: &InfoPageProps) -> Html {
             is_choreo_video_uploading.set(true);
             choreo_video_upload_error.set(None);
             choreo_video_path.set(None);
+            choreo_video_duration_seconds_for_reset.set(None);
+
+            extract_video_thumbnail(
+                file_for_thumbnail,
+                Callback::from(move |data_url: String| {
+                    choreo_video_thumbnail.set(Some(data_url));
+                }),
+            );
+
+            extract_video_duration_seconds(
+                file_for_duration,
+                Callback::from(move |result: Result<i32, String>| match result {
+                    Ok(seconds) => {
+                        choreo_video_duration_seconds_for_reader.set(Some(seconds));
+                        choreo_video_upload_error_for_duration.set(None);
+                    }
+                    Err(message) => {
+                        choreo_video_duration_seconds_for_reader.set(None);
+                        choreo_video_upload_error_for_duration.set(Some(message));
+                    }
+                }),
+            );
 
             spawn_local(async move {
                 match upload_choreography_file(file_for_upload, "choreo_video").await {
@@ -613,6 +658,7 @@ pub fn info_page(props: &InfoPageProps) -> Html {
     let on_send_click = {
         let choreo_image_path = choreo_image_path.clone();
         let choreo_video_path = choreo_video_path.clone();
+        let choreo_video_duration_seconds = choreo_video_duration_seconds.clone();
         let description = description.clone();
         let selected_dancer_ids = selected_dancer_ids.clone();
         let is_image_uploading = is_image_uploading.clone();
@@ -649,6 +695,7 @@ pub fn info_page(props: &InfoPageProps) -> Html {
                 &*choreo_image_path,
                 &description_value,
                 &*choreo_video_path,
+                &*choreo_video_duration_seconds,
                 &selected_ids,
             );
 
@@ -666,12 +713,9 @@ pub fn info_page(props: &InfoPageProps) -> Html {
                 return;
             }
 
-            let duration_seconds = match parse_duration_seconds(&draft_entry.duration) {
-                Ok(seconds) => seconds,
-                Err(message) => {
-                    show_alert(&message);
-                    return;
-                }
+            let Some(duration_seconds) = *choreo_video_duration_seconds else {
+                show_alert("Choreography video duration could not be read. Please upload the choreography video again.");
+                return;
             };
 
             let Some(image_path) = (*choreo_image_path).clone() else {
@@ -743,7 +787,7 @@ pub fn info_page(props: &InfoPageProps) -> Html {
 
                 <div class="creator-help-box">
                     <p>
-                        { "Complete the choreography image, description, choreography video and dancers before sending." }
+                        { "Complete the choreography image, description, choreography video and dancers before sending. Duration is detected automatically from the choreography video." }
                     </p>
                     <p>
                         { "At least two dancers must be selected. Click Add Dancer and choose dancers from the list." }
@@ -836,6 +880,16 @@ pub fn info_page(props: &InfoPageProps) -> Html {
                         onchange={on_video_file_change}
                     />
                 </div>
+
+                if let Some(seconds) = *choreo_video_duration_seconds {
+                    <p class="login-help-text">
+                        { format!("Detected duration: {}", format_duration_seconds(seconds)) }
+                    </p>
+                } else {
+                    <p class="login-help-text">
+                        { "Duration will be detected automatically from the choreography video." }
+                    </p>
+                }
 
                 <h2>{ "Dancers" }</h2>
 

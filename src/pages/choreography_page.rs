@@ -2,6 +2,7 @@ use crate::components::molecules::video_list::{ChoreographyEntry, VideoList};
 use crate::services::supabase::{
     create_choreography_file_signed_url, fetch_submitted_choreographies, SubmittedChoreographyRow,
 };
+
 use crate::Route;
 use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
@@ -284,20 +285,6 @@ pub fn choreography_page() -> Html {
         })
     };
 
-    let on_duration_change = {
-        let draft_choreographies = draft_choreographies.clone();
-
-        Callback::from(move |(number, duration): (u32, String)| {
-            let mut updated = (*draft_choreographies).clone();
-
-            if let Some(entry) = updated.iter_mut().find(|entry| entry.number == number) {
-                entry.duration = duration;
-            }
-
-            draft_choreographies.set(updated);
-        })
-    };
-
     let on_machine_change = {
         let draft_choreographies = draft_choreographies.clone();
 
@@ -328,10 +315,10 @@ pub fn choreography_page() -> Html {
 
             <div class="creator-help-box">
                 <p>
-                    { "Create a choreography draft, upload a demo video, enter a title and duration, and choose the DanceOmatic machine that should receive it." }
+                    { "Create a choreography draft, upload a demo video, enter a title, and choose the DanceOmatic machine that should receive it." }
                 </p>
                 <p>
-                    { "Open Details to add the choreography image, description, choreography video and dancers. All required fields must be completed before the choreography can be sent." }
+                    { "Open Details to add the choreography image, description, choreography video and dancers. The duration is detected automatically from the choreography video." }
                 </p>
             </div>
 
@@ -357,7 +344,6 @@ pub fn choreography_page() -> Html {
                     on_thumbnail_change={on_thumbnail_change}
                     on_demo_video_path_change={on_demo_video_path_change}
                     on_title_change={on_title_change}
-                    on_duration_change={on_duration_change}
                     on_machine_change={on_machine_change}
                     on_add_info={on_add_info}
                     on_remove={on_remove_choreography}
