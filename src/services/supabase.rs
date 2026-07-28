@@ -504,6 +504,111 @@ pub async fn submit_choreography(
     Ok(choreography_id)
 }
 
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct SubmittedChoreographyMachineRow {
+    pub machine_id: String,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct SubmittedChoreographyRow {
+    pub id: String,
+    pub title: String,
+    pub duration_seconds: i32,
+    pub image_path: String,
+    pub status: String,
+    pub created_at: String,
+    pub submitted_at: Option<String>,
+
+    #[serde(default)]
+    pub choreography_machines: Vec<SubmittedChoreographyMachineRow>,
+}
+
+pub async fn fetch_submitted_choreographies() -> Result<Vec<SubmittedChoreographyRow>, String> {
+    let access_token = get_access_token().ok_or("User is not logged in".to_string())?;
+    let user_id = get_current_user_id().ok_or("Missing user id".to_string())?;
+
+    let url = format!(
+        "{}/rest/v1/choreographies?select=id,title,duration_seconds,image_path,status,created_at,submitted_at,choreography_machines(machine_id)&created_by=eq.{}&order=created_at.desc",
+        SUPABASE_URL,
+        user_id
+    );
+
+    let response = Request::get(&url)
+        .header("apikey", SUPABASE_PUBLISHABLE_KEY)
+        .header("Authorization", &format!("Bearer {}", access_token))
+        .send()
+        .await
+        .map_err(|e| format!("Submitted choreographies request failed: {:?}", e))?;
+
+    if !response.ok() {
+        let status = response.status();
+        let error_text = response
+            .text()
+            .await
+            .unwrap_or_else(|_| "Unknown submitted choreographies fetch error".to_string());
+
+        return Err(format!(
+            "Submitted choreographies fetch failed: {} {}",
+            status, error_text
+        ));
+    }
+
+    response
+        .json()
+        .await
+        .map_err(|e| format!("Could not read submitted choreographies response: {:?}", e))
+}
+
+pub async fn create_choreography_file_signed_url(path: &str) -> Result<String, String> {
+    let access_token = get_access_token().ok_or("User is not logged in".to_string())?;
+
+    let url = format!(
+        "{}/storage/v1/object/sign/choreography-files/{}",
+        SUPABASE_URL,
+        path
+    );
+
+    let body = SignedUrlRequest {
+        expires_in: 60 * 60,
+    };
+
+    let response = Request::post(&url)
+        .header("apikey", SUPABASE_PUBLISHABLE_KEY)
+        .header("Authorization", &format!("Bearer {}", access_token))
+        .header("Content-Type", "application/json")
+        .json(&body)
+        .map_err(|e| format!("Could not build choreography signed URL request: {:?}", e))?
+        .send()
+        .await
+        .map_err(|e| format!("Choreography signed URL request failed: {:?}", e))?;
+
+    if !response.ok() {
+        let status = response.status();
+        let error_text = response
+            .text()
+            .await
+            .unwrap_or_else(|_| "Unknown choreography signed URL error".to_string());
+
+        return Err(format!("Choreography signed URL failed: {} {}", status, error_text));
+    }
+
+    let signed_response: SignedUrlResponse = response
+        .json()
+        .await
+        .map_err(|e| format!("Could not read choreography signed URL response: {:?}", e))?;
+
+    if signed_response.signed_url.starts_with("http") {
+        Ok(signed_response.signed_url)
+    } else {
+        Ok(format!(
+            "{}/storage/v1{}",
+            SUPABASE_URL,
+            signed_response.signed_url
+        ))
+    }
+}
+
 fn sanitize_file_name(file_name: &str) -> String {
     let cleaned: String = file_name
         .chars()
