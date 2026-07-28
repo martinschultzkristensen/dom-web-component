@@ -1,16 +1,19 @@
+use pages::admin_page::AdminPage;
 use pages::choreography_page::ChoreographyPage;
 use pages::dancer_page::DancerPage;
 use pages::login_page::LoginPage;
 use pages::main_page::MainPage;
 use pages::sub_page::info_choreo_page::InfoPage;
+
 use gloo_events::EventListener;
 use gloo_timers::callback::Timeout;
 use std::cell::RefCell;
 use std::rc::Rc;
 use web_sys::window;
 
-use services::supabase::{is_logged_in, logout};
+use services::supabase::{get_my_profile, is_logged_in, logout};
 
+use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
 use yew_router::prelude::*;
 
@@ -37,6 +40,9 @@ pub enum Route {
 
     #[at("/choreographies/:number/info")]
     InfoPage { number: u32 },
+
+    #[at("/admin")]
+    AdminPage,
 }
 
 #[function_component(DanceOmaticWebComponent)]
@@ -123,6 +129,21 @@ fn inactivity_logout() -> Html {
 #[function_component(AuthenticatedLayout)]
 fn authenticated_layout(props: &AuthenticatedLayoutProps) -> Html {
     let navigator = use_navigator();
+    let user_role = use_state(|| None::<String>);
+
+    {
+        let user_role = user_role.clone();
+
+        use_effect_with((), move |_| {
+            spawn_local(async move {
+                if let Ok(profile) = get_my_profile().await {
+                    user_role.set(Some(profile.role));
+                }
+            });
+
+            || ()
+        });
+    }
 
     let on_logout = {
         let navigator = navigator.clone();
@@ -148,6 +169,10 @@ fn authenticated_layout(props: &AuthenticatedLayoutProps) -> Html {
                     <Link<Route> to={Route::MainPage}>{ "Home" }</Link<Route>>
                     <Link<Route> to={Route::DancerPage}>{ "Dancers" }</Link<Route>>
                     <Link<Route> to={Route::ChoreographyPage}>{ "Choreographies" }</Link<Route>>
+
+                    if (*user_role).as_deref() == Some("admin") {
+                        <Link<Route> to={Route::AdminPage}>{ "Admin" }</Link<Route>>
+                    }
 
                     <button class="logout-button" onclick={on_logout}>
                         { "Logout" }
@@ -189,5 +214,7 @@ fn switch(routes: Route) -> Html {
         Route::InfoPage { number } => require_login(html! {
             <InfoPage number={number} />
         }),
+
+        Route::AdminPage => require_login(html! { <AdminPage /> }),
     }
 }

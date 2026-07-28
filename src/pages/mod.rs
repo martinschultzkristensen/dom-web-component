@@ -6,4 +6,4 @@ pub mod main_page;
 pub mod dancer_page;
 pub mod choreography_page;
 pub mod sub_page;
-
+pub mod admin_page;

@@ -635,6 +635,138 @@ pub async fn fetch_submitted_choreographies() -> Result<Vec<SubmittedChoreograph
         .map_err(|e| format!("Could not read submitted choreographies response: {:?}", e))
 }
 
+#[derive(Debug, Deserialize, Clone)]
+pub struct AdminChoreographyMachineRow {
+    pub machine_id: String,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct AdminDancerInfoRow {
+    pub id: String,
+    pub name: String,
+    pub image_path: Option<String>,
+    pub strength: u8,
+    pub flexibility: u8,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct AdminChoreographyDancerRow {
+    pub dancer_id: String,
+    pub sort_order: i32,
+    pub dancers: Option<AdminDancerInfoRow>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct AdminChoreographyRow {
+    pub id: String,
+    pub title: String,
+    pub duration_seconds: i32,
+    pub description: String,
+    pub image_path: String,
+    pub demo_video_path: String,
+    pub choreo_video_path: String,
+    pub status: String,
+    pub created_at: String,
+    pub submitted_at: Option<String>,
+
+    #[serde(default)]
+    pub choreography_machines: Vec<AdminChoreographyMachineRow>,
+
+    #[serde(default)]
+    pub choreography_dancers: Vec<AdminChoreographyDancerRow>,
+}
+
+pub async fn fetch_admin_pending_choreographies() -> Result<Vec<AdminChoreographyRow>, String> {
+    let access_token = get_access_token().ok_or("User is not logged in".to_string())?;
+
+    let url = format!(
+        "{}/rest/v1/choreographies?select=id,title,duration_seconds,description,image_path,demo_video_path,choreo_video_path,status,created_at,submitted_at,choreography_machines(machine_id),choreography_dancers(dancer_id,sort_order,dancers(id,name,image_path,strength,flexibility))&status=eq.pending&order=created_at.asc",
+        SUPABASE_URL
+    );
+
+    let response = Request::get(&url)
+        .header("apikey", SUPABASE_PUBLISHABLE_KEY)
+        .header("Authorization", &format!("Bearer {}", access_token))
+        .send()
+        .await
+        .map_err(|e| format!("Admin pending choreographies request failed: {:?}", e))?;
+
+    if !response.ok() {
+        let status = response.status();
+        let error_text = response
+            .text()
+            .await
+            .unwrap_or_else(|_| "Unknown admin pending choreographies error".to_string());
+
+        return Err(format!(
+            "Admin pending choreographies fetch failed: {} {}",
+            status, error_text
+        ));
+    }
+
+    response
+        .json()
+        .await
+        .map_err(|e| format!("Could not read admin pending choreographies response: {:?}", e))
+}
+
+#[derive(Serialize)]
+struct UpdateChoreographyStatusRequest {
+    status: String,
+}
+
+pub async fn update_choreography_status(
+    choreography_id: String,
+    status: String,
+) -> Result<(), String> {
+    let access_token = get_access_token().ok_or("User is not logged in".to_string())?;
+
+    let normalized_status = status.trim().to_lowercase();
+
+    if normalized_status != "pending"
+        && normalized_status != "approved"
+        && normalized_status != "rejected"
+    {
+        return Err("Invalid choreography status".to_string());
+    }
+
+    let url = format!(
+        "{}/rest/v1/choreographies?id=eq.{}",
+        SUPABASE_URL,
+        choreography_id
+    );
+
+    let body = UpdateChoreographyStatusRequest {
+        status: normalized_status,
+    };
+
+    let response = Request::patch(&url)
+        .header("apikey", SUPABASE_PUBLISHABLE_KEY)
+        .header("Authorization", &format!("Bearer {}", access_token))
+        .header("Content-Type", "application/json")
+        .header("Prefer", "return=minimal")
+        .json(&body)
+        .map_err(|e| format!("Could not build choreography status update request: {:?}", e))?
+        .send()
+        .await
+        .map_err(|e| format!("Choreography status update failed: {:?}", e))?;
+
+    if response.ok() {
+        Ok(())
+    } else {
+        let status = response.status();
+        let error_text = response
+            .text()
+            .await
+            .unwrap_or_else(|_| "Unknown choreography status update error".to_string());
+
+        Err(format!(
+            "Choreography status update failed: {} {}",
+            status, error_text
+        ))
+    }
+}
+
 fn sanitize_file_name(file_name: &str) -> String {
     let cleaned: String = file_name
         .chars()
