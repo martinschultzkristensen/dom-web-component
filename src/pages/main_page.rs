@@ -44,6 +44,17 @@ pub fn main_page() -> Html {
     };
 
      html! {
+        <div class="main_menu-page">
+            <img class="main_menu-hero" src="static/hero.jpg" alt="DanceOmatic" />
+            <p class="main_menu-description">
+                { "Welcome to DanceOmatic Creator" }
+                <br /><br />
+                { "Start by creating at least two dancers." }
+                <br />
+                { "You need a minimum of two dancers before you can create a choreography." }
+                <br /><br />
+                { "After your dancers are ready, you can continue to the choreography page and upload your videos, image, title and description." }
+            </p>
         <div class="main_menu-container">
             <div class="main-panel">
                 <button class="main-action-button" onclick={go_to_dancers}>{ "Dancers" }</button>
@@ -73,6 +84,7 @@ pub fn main_page() -> Html {
                     <button class="main-action-button" onclick={toggle_load_video}>{ "Load video" }</button>
                 }
             </div>
+        </div>
         </div>
     }
 }
