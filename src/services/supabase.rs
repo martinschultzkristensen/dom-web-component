@@ -767,6 +767,173 @@ pub async fn update_choreography_status(
     }
 }
 
+#[derive(Debug, Deserialize, Clone, PartialEq)]
+pub struct MachineMediaRow {
+    pub id: String,
+    pub machine_id: String,
+    pub intro_video_path: Option<String>,
+    pub load_video_path: Option<String>,
+    pub updated_at: String,
+}
+
+fn is_valid_machine_id(machine_id: &str) -> bool {
+    matches!(machine_id, "machine_1" | "machine_2" | "machine_3")
+}
+
+pub async fn fetch_machine_media() -> Result<Vec<MachineMediaRow>, String> {
+    let access_token = get_access_token().ok_or("User is not logged in".to_string())?;
+
+    let url = format!(
+        "{}/rest/v1/machine_media?select=id,machine_id,intro_video_path,load_video_path,updated_at&order=machine_id.asc",
+        SUPABASE_URL
+    );
+
+    let response = Request::get(&url)
+        .header("apikey", SUPABASE_PUBLISHABLE_KEY)
+        .header("Authorization", &format!("Bearer {}", access_token))
+        .send()
+        .await
+        .map_err(|e| format!("Machine media request failed: {:?}", e))?;
+
+    if !response.ok() {
+        let status = response.status();
+        let error_text = response
+            .text()
+            .await
+            .unwrap_or_else(|_| "Unknown machine media fetch error".to_string());
+
+        return Err(format!("Machine media fetch failed: {} {}", status, error_text));
+    }
+
+    response
+        .json()
+        .await
+        .map_err(|e| format!("Could not read machine media response: {:?}", e))
+}
+
+pub async fn upload_machine_media_video(
+    file: File,
+    machine_id: &str,
+    media_role: &str,
+) -> Result<String, String> {
+    let access_token = get_access_token().ok_or("User is not logged in".to_string())?;
+
+    if !is_valid_machine_id(machine_id) {
+        return Err("Invalid machine id".to_string());
+    }
+
+    if media_role != "intro_video" && media_role != "load_video" {
+        return Err("Invalid machine media role".to_string());
+    }
+
+    let file_name = sanitize_file_name(&file.name());
+    let timestamp = js_sys::Date::now() as u64;
+
+    let file_path = format!(
+        "machine-media/{}/{}_{}_{}",
+        machine_id,
+        media_role,
+        timestamp,
+        file_name
+    );
+
+    let content_type = if file.type_().is_empty() {
+        "application/octet-stream".to_string()
+    } else {
+        file.type_()
+    };
+
+    let url = format!(
+        "{}/storage/v1/object/choreography-files/{}",
+        SUPABASE_URL,
+        file_path
+    );
+
+    let response = Request::post(&url)
+        .header("apikey", SUPABASE_PUBLISHABLE_KEY)
+        .header("Authorization", &format!("Bearer {}", access_token))
+        .header("Content-Type", &content_type)
+        .header("x-upsert", "true")
+        .body(file)
+        .map_err(|e| format!("Could not build machine media upload request: {:?}", e))?
+        .send()
+        .await
+        .map_err(|e| format!("Machine media upload failed: {:?}", e))?;
+
+    if response.ok() {
+        Ok(file_path)
+    } else {
+        let status = response.status();
+        let error_text = response
+            .text()
+            .await
+            .unwrap_or_else(|_| "Unknown machine media upload error".to_string());
+
+        Err(format!(
+            "Machine media upload failed: {} {}",
+            status,
+            error_text
+        ))
+    }
+}
+
+pub async fn update_machine_media(
+    machine_id: String,
+    intro_video_path: Option<String>,
+    load_video_path: Option<String>,
+) -> Result<(), String> {
+    let access_token = get_access_token().ok_or("User is not logged in".to_string())?;
+    let user_id = get_current_user_id().ok_or("Missing user id".to_string())?;
+
+    if !is_valid_machine_id(&machine_id) {
+        return Err("Invalid machine id".to_string());
+    }
+
+    let updated_at = js_sys::Date::new_0()
+        .to_iso_string()
+        .as_string()
+        .unwrap_or_else(|| "1970-01-01T00:00:00.000Z".to_string());
+
+    let body = serde_json::json!({
+        "intro_video_path": intro_video_path,
+        "load_video_path": load_video_path,
+        "updated_by": user_id,
+        "updated_at": updated_at,
+    });
+
+    let url = format!(
+        "{}/rest/v1/machine_media?machine_id=eq.{}",
+        SUPABASE_URL,
+        machine_id
+    );
+
+    let response = Request::patch(&url)
+        .header("apikey", SUPABASE_PUBLISHABLE_KEY)
+        .header("Authorization", &format!("Bearer {}", access_token))
+        .header("Content-Type", "application/json")
+        .header("Prefer", "return=minimal")
+        .json(&body)
+        .map_err(|e| format!("Could not build machine media update request: {:?}", e))?
+        .send()
+        .await
+        .map_err(|e| format!("Machine media update failed: {:?}", e))?;
+
+    if response.ok() {
+        Ok(())
+    } else {
+        let status = response.status();
+        let error_text = response
+            .text()
+            .await
+            .unwrap_or_else(|_| "Unknown machine media update error".to_string());
+
+        Err(format!(
+            "Machine media update failed: {} {}",
+            status, error_text
+        ))
+    }
+}
+
 fn sanitize_file_name(file_name: &str) -> String {
     let cleaned: String = file_name
         .chars()

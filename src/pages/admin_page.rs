@@ -1,8 +1,12 @@
-use crate::services::supabase::{
-    create_choreography_file_signed_url, fetch_admin_pending_choreographies, get_my_profile,
-    update_choreography_status, AdminChoreographyRow,
+﻿use crate::services::supabase::{
+    create_choreography_file_signed_url, fetch_admin_pending_choreographies, fetch_machine_media,
+    get_my_profile, update_choreography_status, update_machine_media, upload_machine_media_video,
+    AdminChoreographyRow, MachineMediaRow,
 };
+use wasm_bindgen::JsCast;
+use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::spawn_local;
+use web_sys::{Event, File, HtmlInputElement, Url};
 use yew::prelude::*;
 
 #[derive(Clone, PartialEq)]
@@ -26,6 +30,65 @@ fn machine_label(machine_id: &str) -> String {
         "No machine selected" => "No machine selected".to_string(),
         other => other.to_string(),
     }
+}
+
+#[derive(Clone, PartialEq)]
+struct AdminMachineMediaView {
+    machine_id: String,
+    intro_video_path: Option<String>,
+    load_video_path: Option<String>,
+    intro_video_url: Option<String>,
+    load_video_url: Option<String>,
+    updated_at: String,
+}
+
+fn has_media_path(path: &Option<String>) -> bool {
+    path.as_deref()
+        .map(|value| !value.trim().is_empty())
+        .unwrap_or(false)
+}
+
+async fn machine_media_row_to_view(row: MachineMediaRow) -> AdminMachineMediaView {
+    let intro_video_url = if has_media_path(&row.intro_video_path) {
+        create_choreography_file_signed_url(row.intro_video_path.as_deref().unwrap())
+            .await
+            .ok()
+    } else {
+        None
+    };
+
+    let load_video_url = if has_media_path(&row.load_video_path) {
+        create_choreography_file_signed_url(row.load_video_path.as_deref().unwrap())
+            .await
+            .ok()
+    } else {
+        None
+    };
+
+    AdminMachineMediaView {
+        machine_id: row.machine_id,
+        intro_video_path: row.intro_video_path,
+        load_video_path: row.load_video_path,
+        intro_video_url,
+        load_video_url,
+        updated_at: row.updated_at,
+    }
+}
+
+fn selected_file_from_event(event: Event) -> Option<File> {
+    event
+        .target()
+        .and_then(|target| target.dyn_into::<HtmlInputElement>().ok())
+        .and_then(|input| input.files())
+        .and_then(|files| files.get(0))
+}
+
+fn selected_value_from_event(event: Event) -> String {
+    event
+        .target()
+        .and_then(|target| js_sys::Reflect::get(&target, &JsValue::from_str("value")).ok())
+        .and_then(|value| value.as_string())
+        .unwrap_or_else(|| "machine_1".to_string())
 }
 
 fn format_duration(total_seconds: i32) -> String {
@@ -79,6 +142,41 @@ pub fn admin_page() -> Html {
     let reload_counter = use_state(|| 0u32);
     let action_message = use_state(|| None::<String>);
 
+    let is_loading_machine_media = use_state(|| false);
+    let machine_media = use_state(Vec::<AdminMachineMediaView>::new);
+    let machine_media_reload_counter = use_state(|| 0u32);
+    let machine_media_error = use_state(|| None::<String>);
+    let selected_machine_id = use_state(|| "machine_1".to_string());
+    let selected_intro_file = use_state(|| None::<File>);
+    let selected_load_file = use_state(|| None::<File>);
+    let selected_intro_file_name = use_state(|| None::<String>);
+    let selected_load_file_name = use_state(|| None::<String>);
+    let selected_intro_preview_url = use_state(|| None::<String>);
+    let selected_load_preview_url = use_state(|| None::<String>);
+    let is_saving_machine_media = use_state(|| false);
+    let machine_select_ref = use_node_ref();
+
+    {
+        let machine_select_ref = machine_select_ref.clone();
+        let selected_machine_id_dependency = (*selected_machine_id).clone();
+        let is_loading_machine_media_dependency = *is_loading_machine_media;
+
+        use_effect_with(
+            (selected_machine_id_dependency, is_loading_machine_media_dependency),
+            move |(machine_id, _)| {
+                if let Some(select_element) = machine_select_ref.cast::<web_sys::Element>() {
+                    let _ = js_sys::Reflect::set(
+                        select_element.as_ref(),
+                        &JsValue::from_str("value"),
+                        &JsValue::from_str(machine_id.as_str()),
+                    );
+                }
+
+                || ()
+            },
+        );
+    }
+
     {
         let is_loading_access = is_loading_access.clone();
         let role = role.clone();
@@ -106,7 +204,7 @@ pub fn admin_page() -> Html {
         });
     }
 
-        {
+    {
         let is_loading_choreographies = is_loading_choreographies.clone();
         let choreographies = choreographies.clone();
         let page_error = page_error.clone();
@@ -143,6 +241,43 @@ pub fn admin_page() -> Html {
         });
     }
 
+    {
+        let is_loading_machine_media = is_loading_machine_media.clone();
+        let machine_media = machine_media.clone();
+        let machine_media_error = machine_media_error.clone();
+
+        let role_dependency = (*role).clone();
+        let reload_dependency = *machine_media_reload_counter;
+
+        use_effect_with((role_dependency, reload_dependency), move |(role_value, _)| {
+            if role_value.as_deref() == Some("admin") {
+                spawn_local(async move {
+                    is_loading_machine_media.set(true);
+
+                    match fetch_machine_media().await {
+                        Ok(rows) => {
+                            let mut views = Vec::<AdminMachineMediaView>::new();
+
+                            for row in rows {
+                                views.push(machine_media_row_to_view(row).await);
+                            }
+
+                            machine_media.set(views);
+                            machine_media_error.set(None);
+                        }
+                        Err(message) => {
+                            machine_media_error.set(Some(message));
+                        }
+                    }
+
+                    is_loading_machine_media.set(false);
+                });
+            }
+
+            || ()
+        });
+    }
+
     let content = if *is_loading_access {
         html! {
             <p class="login-help-text">
@@ -162,6 +297,359 @@ pub fn admin_page() -> Html {
             </div>
         }
     } else {
+        let selected_machine_id_value = (*selected_machine_id).clone();
+
+        let selected_media = (*machine_media)
+            .iter()
+            .find(|media| media.machine_id == selected_machine_id_value)
+            .cloned();
+
+        let current_intro_path = selected_media
+            .as_ref()
+            .and_then(|media| media.intro_video_path.clone());
+
+        let current_load_path = selected_media
+            .as_ref()
+            .and_then(|media| media.load_video_path.clone());
+
+        let intro_preview_url = (*selected_intro_preview_url)
+            .clone()
+            .or_else(|| {
+                selected_media
+                    .as_ref()
+                    .and_then(|media| media.intro_video_url.clone())
+            });
+
+        let intro_preview = if let Some(intro_url) = intro_preview_url {
+            html! {
+                <video
+                    class="machine-media-preview-video"
+                    controls=true
+                    preload="metadata"
+                    src={intro_url}
+                />
+            }
+        } else {
+            html! {
+                <div class="machine-media-video-placeholder">
+                    { "No intro video saved for this machine yet" }
+                </div>
+            }
+        };
+
+        let load_preview_url = (*selected_load_preview_url)
+            .clone()
+            .or_else(|| {
+                selected_media
+                    .as_ref()
+                    .and_then(|media| media.load_video_url.clone())
+            });
+
+        let load_preview = if let Some(load_url) = load_preview_url {
+            html! {
+                <video
+                class="machine-media-preview-video"
+                controls=true
+                preload="metadata"
+                src={load_url}
+            />
+            }
+        } else {
+            html! {
+                <div class="machine-media-video-placeholder">
+                    { "No load video saved for this machine yet" }
+                </div>
+            }
+        };
+
+        let selected_updated_at = selected_media
+            .as_ref()
+            .map(|media| media.updated_at.clone())
+            .unwrap_or_else(|| "Not updated yet".to_string());
+
+        let on_machine_change = {
+            let selected_machine_id = selected_machine_id.clone();
+            let selected_intro_file = selected_intro_file.clone();
+            let selected_load_file = selected_load_file.clone();
+            let selected_intro_file_name = selected_intro_file_name.clone();
+            let selected_load_file_name = selected_load_file_name.clone();
+            let selected_intro_preview_url = selected_intro_preview_url.clone();
+            let selected_load_preview_url = selected_load_preview_url.clone();
+            let machine_media_error = machine_media_error.clone();
+
+            Callback::from(move |event: Event| {
+                selected_machine_id.set(selected_value_from_event(event));
+                selected_intro_file.set(None);
+                selected_load_file.set(None);
+                selected_intro_file_name.set(None);
+                selected_load_file_name.set(None);
+                selected_intro_preview_url.set(None);
+                selected_load_preview_url.set(None);
+                machine_media_error.set(None);
+            })
+        };
+
+        let on_intro_file_change = {
+            let selected_intro_file = selected_intro_file.clone();
+            let selected_intro_file_name = selected_intro_file_name.clone();
+            let selected_intro_preview_url = selected_intro_preview_url.clone();
+            let machine_media_error = machine_media_error.clone();
+
+            Callback::from(move |event: Event| {
+                if let Some(file) = selected_file_from_event(event) {
+                    let file_name = file.name();
+                    let preview_url = Url::create_object_url_with_blob(&file).ok();
+
+                    selected_intro_file_name.set(Some(file_name));
+                    selected_intro_preview_url.set(preview_url);
+                    selected_intro_file.set(Some(file));
+                    machine_media_error.set(None);
+                }
+            })
+        };
+
+        let on_load_file_change = {
+            let selected_load_file = selected_load_file.clone();
+            let selected_load_file_name = selected_load_file_name.clone();
+            let selected_load_preview_url = selected_load_preview_url.clone();
+            let machine_media_error = machine_media_error.clone();
+
+            Callback::from(move |event: Event| {
+                if let Some(file) = selected_file_from_event(event) {
+                    let file_name = file.name();
+                    let preview_url = Url::create_object_url_with_blob(&file).ok();
+
+                    selected_load_file_name.set(Some(file_name));
+                    selected_load_preview_url.set(preview_url);
+                    selected_load_file.set(Some(file));
+                    machine_media_error.set(None);
+                }
+            })
+        };
+
+        let on_save_machine_media = {
+            let selected_intro_preview_url = selected_intro_preview_url.clone();
+            let selected_load_preview_url = selected_load_preview_url.clone();
+            let machine_id = (*selected_machine_id).clone();
+            let existing_intro_path = current_intro_path.clone();
+            let existing_load_path = current_load_path.clone();
+            let selected_intro_file_value = (*selected_intro_file).clone();
+            let selected_load_file_value = (*selected_load_file).clone();
+
+            let selected_intro_file = selected_intro_file.clone();
+            let selected_load_file = selected_load_file.clone();
+            let selected_intro_file_name = selected_intro_file_name.clone();
+            let selected_load_file_name = selected_load_file_name.clone();
+
+            let is_saving_machine_media = is_saving_machine_media.clone();
+            let machine_media_reload_counter = machine_media_reload_counter.clone();
+            let action_message = action_message.clone();
+            let machine_media_error = machine_media_error.clone();
+            let current_machine_media_reload = *machine_media_reload_counter;
+
+            Callback::from(move |_| {
+                let selected_intro_preview_url = selected_intro_preview_url.clone();
+                let selected_load_preview_url = selected_load_preview_url.clone();
+                let machine_id = machine_id.clone();
+                let existing_intro_path = existing_intro_path.clone();
+                let existing_load_path = existing_load_path.clone();
+                let selected_intro_file_value = selected_intro_file_value.clone();
+                let selected_load_file_value = selected_load_file_value.clone();
+
+                let selected_intro_file = selected_intro_file.clone();
+                let selected_load_file = selected_load_file.clone();
+                let selected_intro_file_name = selected_intro_file_name.clone();
+                let selected_load_file_name = selected_load_file_name.clone();
+
+                let is_saving_machine_media = is_saving_machine_media.clone();
+                let machine_media_reload_counter = machine_media_reload_counter.clone();
+                let action_message = action_message.clone();
+                let machine_media_error = machine_media_error.clone();
+
+                spawn_local(async move {
+                    if selected_intro_file_value.is_none() && selected_load_file_value.is_none() {
+                        machine_media_error.set(Some(
+                            "Choose an intro video or load video before saving.".to_string(),
+                        ));
+                        return;
+                    }
+
+                    is_saving_machine_media.set(true);
+                    machine_media_error.set(None);
+
+                    let mut intro_path = existing_intro_path;
+                    let mut load_path = existing_load_path;
+
+                    if let Some(file) = selected_intro_file_value {
+                        match upload_machine_media_video(file, &machine_id, "intro_video").await {
+                            Ok(path) => intro_path = Some(path),
+                            Err(message) => {
+                                machine_media_error.set(Some(message));
+                                is_saving_machine_media.set(false);
+                                return;
+                            }
+                        }
+                    }
+
+                    if let Some(file) = selected_load_file_value {
+                        match upload_machine_media_video(file, &machine_id, "load_video").await {
+                            Ok(path) => load_path = Some(path),
+                            Err(message) => {
+                                machine_media_error.set(Some(message));
+                                is_saving_machine_media.set(false);
+                                return;
+                            }
+                        }
+                    }
+
+                    match update_machine_media(machine_id.clone(), intro_path, load_path).await {
+                        Ok(_) => {
+                            action_message.set(Some(format!(
+                                "Updated machine media for {}",
+                                machine_label(&machine_id)
+                            )));
+                            selected_intro_file.set(None);
+                            selected_load_file.set(None);
+                            selected_intro_preview_url.set(None);
+                            selected_load_preview_url.set(None);
+                            selected_intro_file_name.set(None);
+                            selected_load_file_name.set(None);
+                            machine_media_reload_counter.set(current_machine_media_reload + 1);
+                        }
+                        Err(message) => {
+                            machine_media_error.set(Some(message));
+                        }
+                    }
+
+                    is_saving_machine_media.set(false);
+                });
+            })
+        };
+
+        let machine_media_content = if *is_loading_machine_media {
+            html! {
+                <p class="login-help-text">
+                    { "Loading machine media..." }
+                </p>
+            }
+        } else {
+            html! {
+                <section class="machine-media-panel">
+                    <div class="machine-media-header">
+                        <div>
+                            <h2>{ "Machine media" }</h2>
+                            <p>
+                                { "Upload and manage the default intro video and load video for each DanceOmatic machine." }
+                            </p>
+                        </div>
+
+                        <label class="machine-media-select-label">
+                            <span>{ "Select machine" }</span>
+                            <select
+                                ref={machine_select_ref.clone()}
+                                class="machine-media-select"
+                                autocomplete="off"
+                                value={selected_machine_id_value.clone()}
+                                onchange={on_machine_change}
+                            >
+                                <option value="machine_1">{ "DanceOmatic 1" }</option>
+                                <option value="machine_2">{ "DanceOmatic 2" }</option>
+                                <option value="machine_3">{ "DanceOmatic 3" }</option>
+                            </select>
+                        </label>
+                    </div>
+
+                    if let Some(message) = &*machine_media_error {
+                        <p class="error-message">
+                            { message.clone() }
+                        </p>
+                    }
+
+                    <p class="machine-media-updated">
+                        <strong>{ "Current machine: " }</strong>
+                        { machine_label(&selected_machine_id_value) }
+                        <br />
+                        <strong>{ "Last updated: " }</strong>
+                        { selected_updated_at }
+                    </p>
+
+                    <div class="machine-media-grid">
+                        <article class="machine-media-card">
+                            <h3>{ "Intro video" }</h3>
+                            { intro_preview }
+
+                            <p class="machine-media-path">
+                                <strong>{ "Current path: " }</strong>
+                                { current_intro_path.clone().unwrap_or_else(|| "Not set".to_string()) }
+                            </p>
+
+                            <label class="machine-media-upload-label">
+                                <span>{ "Choose new intro video" }</span>
+                                <input
+                                    type="file"
+                                    accept="video/*"
+                                    onchange={on_intro_file_change}
+                                />
+                            </label>
+
+                            <p class="machine-media-selected-file">
+                                {
+                                    if let Some(file_name) = &*selected_intro_file_name {
+                                        format!("Selected: {}", file_name)
+                                    } else {
+                                        "No new intro video selected".to_string()
+                                    }
+                                }
+                            </p>
+                        </article>
+
+                        <article class="machine-media-card">
+                            <h3>{ "Load video" }</h3>
+                            { load_preview }
+
+                            <p class="machine-media-path">
+                                <strong>{ "Current path: " }</strong>
+                                { current_load_path.clone().unwrap_or_else(|| "Not set".to_string()) }
+                            </p>
+
+                            <label class="machine-media-upload-label">
+                                <span>{ "Choose new load video" }</span>
+                                <input
+                                    type="file"
+                                    accept="video/*"
+                                    onchange={on_load_file_change}
+                                />
+                            </label>
+
+                            <p class="machine-media-selected-file">
+                                {
+                                    if let Some(file_name) = &*selected_load_file_name {
+                                        format!("Selected: {}", file_name)
+                                    } else {
+                                        "No new load video selected".to_string()
+                                    }
+                                }
+                            </p>
+                        </article>
+                    </div>
+
+                    <button
+                        class="machine-media-save-button"
+                        onclick={on_save_machine_media}
+                        disabled={*is_saving_machine_media}
+                    >
+                        {
+                            if *is_saving_machine_media {
+                                "Saving..."
+                            } else {
+                                "Save machine media"
+                            }
+                        }
+                    </button>
+                </section>
+            }
+        };
+
         let choreography_content = if *is_loading_choreographies {
             html! {
                 <p class="login-help-text">
@@ -386,23 +874,24 @@ pub fn admin_page() -> Html {
             }
         };
 
-        html! {
+                html! {
             <>
-                <div class="creator-help-box">
-                    <p>
-                        { "Review submitted choreographies before they become available on DanceOmatic machines." }
-                    </p>
-                </div>
-
                 if let Some(message) = &*action_message {
                     <p class="admin-action-message">
                         { message.clone() }
                     </p>
                 }
 
-                <h2>{ "Pending choreographies" }</h2>
+                { machine_media_content }
 
-                { choreography_content }
+                <section class="admin-section-block">
+                    <h2>{ "Pending choreographies" }</h2>
+                    <p class="admin-section-description">
+                        { "Review submitted choreographies before they become available on DanceOmatic machines." }
+                    </p>
+
+                    { choreography_content }
+                </section>
             </>
         }
     };
@@ -414,3 +903,4 @@ pub fn admin_page() -> Html {
         </div>
     }
 }
+
