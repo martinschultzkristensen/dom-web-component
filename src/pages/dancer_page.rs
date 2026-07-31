@@ -762,10 +762,7 @@ pub fn dancer_page() -> Html {
                                                 reload_counter.set(*reload_counter + 1);
                                             }
                                             Err(message) => {
-                                                page_error.set(Some(format!(
-                                                    "Could not remove dancer. The dancer may already be used in a submitted choreography.\n\n{}",
-                                                    message
-                                                )));
+                                                page_error.set(Some(message));
                                             }
                                         }
 

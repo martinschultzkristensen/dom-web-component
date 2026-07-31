@@ -336,11 +336,91 @@ pub async fn update_dancer(
         Err(format!("Dancer update failed: {} {}", status, error_text))
     }
 }
+#[derive(Debug, Deserialize)]
+struct DancerUsageChoreography {
+    title: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct DancerUsageRow {
+    choreographies: Option<DancerUsageChoreography>,
+}
+
+async fn fetch_dancer_choreography_titles(
+    dancer_id: &str,
+) -> Result<Vec<String>, String> {
+    let access_token =
+        get_access_token().ok_or("User is not logged in".to_string())?;
+
+    let url = format!(
+        "{}/rest/v1/choreography_dancers?select=choreographies(title)&dancer_id=eq.{}",
+        SUPABASE_URL,
+        dancer_id
+    );
+
+    let response = Request::get(&url)
+        .header("apikey", SUPABASE_PUBLISHABLE_KEY)
+        .header("Authorization", &format!("Bearer {}", access_token))
+        .send()
+        .await
+        .map_err(|_| "Could not check whether the dancer is in use.".to_string())?;
+
+    if !response.ok() {
+        return Err("Could not check whether the dancer is in use.".to_string());
+    }
+
+    let rows: Vec<DancerUsageRow> = response
+        .json()
+        .await
+        .map_err(|_| "Could not check whether the dancer is in use.".to_string())?;
+
+    let mut titles = Vec::<String>::new();
+
+    for row in rows {
+        if let Some(choreography) = row.choreographies {
+            if !titles.contains(&choreography.title) {
+                titles.push(choreography.title);
+            }
+        }
+    }
+
+    Ok(titles)
+}
 
 pub async fn delete_dancer(dancer_id: String) -> Result<(), String> {
-    let access_token = get_access_token().ok_or("User is not logged in".to_string())?;
+    let choreography_titles =
+        fetch_dancer_choreography_titles(&dancer_id).await?;
 
-    let url = format!("{}/rest/v1/dancers?id=eq.{}", SUPABASE_URL, dancer_id);
+    if !choreography_titles.is_empty() {
+        let message = if choreography_titles.len() == 1 {
+            format!(
+                "Cannot remove dancer because it is used in the choreography \"{}\".",
+                choreography_titles[0]
+            )
+        } else {
+            let names = choreography_titles
+                .iter()
+                .map(|title| format!("\"{}\"", title))
+                .collect::<Vec<String>>()
+                .join(", ");
+
+            format!(
+                "Cannot remove dancer because it is used in these choreographies: {}.",
+                names
+            )
+        };
+
+        return Err(message);
+    }
+
+    let access_token =
+        get_access_token().ok_or("User is not logged in".to_string())?;
+
+    let url = format!(
+        "{}/rest/v1/dancers?id=eq.{}",
+        SUPABASE_URL,
+        dancer_id
+    );
 
     let response = Request::delete(&url)
         .header("apikey", SUPABASE_PUBLISHABLE_KEY)
@@ -348,18 +428,12 @@ pub async fn delete_dancer(dancer_id: String) -> Result<(), String> {
         .header("Prefer", "return=minimal")
         .send()
         .await
-        .map_err(|e| format!("Dancer delete failed: {:?}", e))?;
+        .map_err(|_| "Could not remove dancer.".to_string())?;
 
     if response.ok() {
         Ok(())
     } else {
-        let status = response.status();
-        let error_text = response
-            .text()
-            .await
-            .unwrap_or_else(|_| "Unknown dancer delete error".to_string());
-
-        Err(format!("Dancer delete failed: {} {}", status, error_text))
+        Err("Could not remove dancer.".to_string())
     }
 }
 
