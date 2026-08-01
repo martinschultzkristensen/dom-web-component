@@ -787,10 +787,11 @@ pub fn info_page(props: &InfoPageProps) -> Html {
 
                 <div class="creator-help-box">
                     <p>
-                        { "Complete the choreography image, description, choreography video and dancers before sending. Duration is detected automatically from the choreography video." }
+                        { "Fill out the boxes below, and upload image and choreography video.
+                        " }
                     </p>
                     <p>
-                        { "At least two dancers must be selected. Click Add Dancer and choose dancers from the list." }
+                        { "At least two dancers must be added before pressing Send to danceOmatic" }
                     </p>
                 </div>
 
