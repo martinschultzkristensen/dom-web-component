@@ -316,7 +316,7 @@ fn video_list_item(props: &VideoListItemProps) -> Html {
                     class="main-action-button"
                     onclick={on_add_info_click}
                 >
-                    { format!("Add details for No. {}", number) }
+                    { format!("+ Add details") }
                 </button>
 
                 <button
@@ -324,7 +324,7 @@ fn video_list_item(props: &VideoListItemProps) -> Html {
                     class="choreo-dancer-remove"
                     onclick={on_remove_click}
                 >
-                    { format!("Remove No. {}", number) }
+                    { format!("Remove") }
                 </button>
             </div>
         </div>
