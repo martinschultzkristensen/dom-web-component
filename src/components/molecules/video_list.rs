@@ -2,7 +2,7 @@ use crate::services::supabase::upload_choreography_file;
 use crate::video_thumbnail::extract_video_thumbnail;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen_futures::spawn_local;
-use web_sys::{DragEvent, Event, File, HtmlInputElement, HtmlSelectElement};
+use web_sys::{DragEvent, Event, File, HtmlInputElement};
 use yew::prelude::*;
 
 #[derive(Clone, PartialEq, Serialize, Deserialize)]
@@ -18,8 +18,6 @@ pub struct ChoreographyEntry {
     #[serde(default)]
     pub title: String,
 
-    #[serde(default)]
-    pub target_machine: String,
 }
 
 impl ChoreographyEntry {
@@ -29,7 +27,6 @@ impl ChoreographyEntry {
             video_thumbnail: None,
             demo_video_path: None,
             title: String::new(),
-            target_machine: String::new(),
         }
     }
 }
@@ -40,7 +37,6 @@ pub struct VideoListProps {
     pub on_thumbnail_change: Callback<(u32, String)>,
     pub on_demo_video_path_change: Callback<(u32, String)>,
     pub on_title_change: Callback<(u32, String)>,
-    pub on_machine_change: Callback<(u32, String)>,
     pub on_add_info: Callback<u32>,
     pub on_remove: Callback<u32>,
 }
@@ -57,7 +53,6 @@ pub fn video_list(props: &VideoListProps) -> Html {
                         on_thumbnail_change={props.on_thumbnail_change.clone()}
                         on_demo_video_path_change={props.on_demo_video_path_change.clone()}
                         on_title_change={props.on_title_change.clone()}
-                        on_machine_change={props.on_machine_change.clone()}
                         on_add_info={props.on_add_info.clone()}
                         on_remove={props.on_remove.clone()}
                     />
@@ -73,7 +68,6 @@ struct VideoListItemProps {
     on_thumbnail_change: Callback<(u32, String)>,
     on_demo_video_path_change: Callback<(u32, String)>,
     on_title_change: Callback<(u32, String)>,
-    on_machine_change: Callback<(u32, String)>,
     on_add_info: Callback<u32>,
     on_remove: Callback<u32>,
 }
@@ -201,16 +195,6 @@ fn video_list_item(props: &VideoListItemProps) -> Html {
         })
     };
 
-    let on_machine_select = {
-        let on_machine_change = props.on_machine_change.clone();
-
-        Callback::from(move |event: Event| {
-            if let Some(select) = event.target_dyn_into::<HtmlSelectElement>() {
-                on_machine_change.emit((number, select.value()));
-            }
-        })
-    };
-
     let on_add_info_click = {
         let on_add_info = props.on_add_info.clone();
 
@@ -275,39 +259,6 @@ fn video_list_item(props: &VideoListItemProps) -> Html {
                     oninput={on_title_input}
                 />
 
-                <select
-                    key={format!("machine-select-{}-{}", number, entry.target_machine)}
-                    class="choreo-dancer-select"
-                    onchange={on_machine_select}
-                >
-                    <option
-                        value=""
-                        selected={entry.target_machine.is_empty()}
-                    >
-                        { "Select DanceOmatic machine" }
-                    </option>
-
-                    <option
-                        value="machine_1"
-                        selected={entry.target_machine == "machine_1"}
-                    >
-                        { "Machine 1" }
-                    </option>
-
-                    <option
-                        value="machine_2"
-                        selected={entry.target_machine == "machine_2"}
-                    >
-                        { "Machine 2" }
-                    </option>
-
-                    <option
-                        value="machine_3"
-                        selected={entry.target_machine == "machine_3"}
-                    >
-                        { "Machine 3" }
-                    </option>
-                </select>
             </div>
 
             <div class="main-panel">

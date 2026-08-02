@@ -18,7 +18,6 @@ struct SubmittedChoreographyView {
     duration_seconds: i32,
     image_url: Option<String>,
     status: String,
-    machine_id: Option<String>,
 }
 
 fn load_choreographies(key: &str) -> Option<Vec<ChoreographyEntry>> {
@@ -109,15 +108,6 @@ fn format_duration_seconds(duration_seconds: i32) -> String {
     format!("{}:{:02}", minutes, seconds)
 }
 
-fn machine_label(machine_id: &Option<String>) -> String {
-    match machine_id.as_deref() {
-        Some("machine_1") => "DanceOmatic 1".to_string(),
-        Some("machine_2") => "DanceOmatic 2".to_string(),
-        Some("machine_3") => "DanceOmatic 3".to_string(),
-        _ => "DanceOmatic".to_string(),
-    }
-}
-
 fn status_label(status: &str) -> String {
     match status {
         "pending" => "Waiting for admin review".to_string(),
@@ -134,18 +124,12 @@ async fn submitted_row_to_view(
         .await
         .ok();
 
-    let machine_id = row
-        .choreography_machines
-        .first()
-        .map(|machine| machine.machine_id.clone());
-
     SubmittedChoreographyView {
         id: row.id,
         title: row.title,
         duration_seconds: row.duration_seconds,
         image_url,
         status: row.status,
-        machine_id,
     }
 }
 
@@ -285,20 +269,6 @@ pub fn choreography_page() -> Html {
         })
     };
 
-    let on_machine_change = {
-        let draft_choreographies = draft_choreographies.clone();
-
-        Callback::from(move |(number, machine): (u32, String)| {
-            let mut updated = (*draft_choreographies).clone();
-
-            if let Some(entry) = updated.iter_mut().find(|entry| entry.number == number) {
-                entry.target_machine = machine;
-            }
-
-            draft_choreographies.set(updated);
-        })
-    };
-
     let navigator = use_navigator().unwrap();
 
     let on_add_info = {
@@ -315,7 +285,7 @@ pub fn choreography_page() -> Html {
 
             <div class="creator-help-box">
                 <p>
-                    { "Create a choreography draft, upload a demo video, enter a title, and choose the DanceOmatic machine that should receive it." }
+                    { "Create a choreography draft, upload a demo video and enter a title. The administrator chooses later which DanceOmatic machines should receive approved choreographies." }
                 </p>
                 <p>
                     { "Open Details to add the choreography image, description, choreography video and dancers. The duration is detected automatically from the choreography video." }
@@ -344,7 +314,6 @@ pub fn choreography_page() -> Html {
                     on_thumbnail_change={on_thumbnail_change}
                     on_demo_video_path_change={on_demo_video_path_change}
                     on_title_change={on_title_change}
-                    on_machine_change={on_machine_change}
                     on_add_info={on_add_info}
                     on_remove={on_remove_choreography}
                 />
@@ -394,10 +363,6 @@ pub fn choreography_page() -> Html {
 
                                             <p>
                                                 { format!("Duration: {}", format_duration_seconds(choreography.duration_seconds)) }
-                                            </p>
-
-                                            <p>
-                                                { format!("Machine: {}", machine_label(&choreography.machine_id)) }
                                             </p>
 
                                             <span class="submitted-status-pill">
