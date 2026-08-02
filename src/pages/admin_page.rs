@@ -18,7 +18,6 @@ struct AdminChoreographyView {
     image_url: Option<String>,
     demo_video_url: Option<String>,
     choreo_video_url: Option<String>,
-    machine_id: String,
     dancers: Vec<String>,
 }
 
@@ -104,12 +103,6 @@ async fn row_to_view(row: AdminChoreographyRow) -> AdminChoreographyView {
     let demo_video_url = create_choreography_file_signed_url(&row.demo_video_path).await.ok();
     let choreo_video_url = create_choreography_file_signed_url(&row.choreo_video_path).await.ok();
 
-    let machine_id = row
-        .choreography_machines
-        .first()
-        .map(|machine| machine.machine_id.clone())
-        .unwrap_or_else(|| "No machine selected".to_string());
-
     let mut dancer_links = row.choreography_dancers.clone();
     dancer_links.sort_by_key(|link| link.sort_order);
 
@@ -126,7 +119,6 @@ async fn row_to_view(row: AdminChoreographyRow) -> AdminChoreographyView {
         image_url,
         demo_video_url,
         choreo_video_url,
-        machine_id,
         dancers,
     }
 }
@@ -807,11 +799,6 @@ pub fn admin_page() -> Html {
                                             <p>
                                                 <strong>{ "Duration: " }</strong>
                                                 { format_duration(item.duration_seconds) }
-                                            </p>
-
-                                            <p>
-                                                <strong>{ "Machine: " }</strong>
-                                                { machine_label(&item.machine_id) }
                                             </p>
 
                                             <p>

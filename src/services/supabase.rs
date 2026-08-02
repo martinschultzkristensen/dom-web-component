@@ -491,12 +491,6 @@ struct NewChoreographyDancer {
     sort_order: i32,
 }
 
-#[derive(Serialize)]
-struct NewChoreographyMachine {
-    choreography_id: String,
-    machine_id: String,
-}
-
 async fn insert_choreography(choreography: NewChoreography) -> Result<String, String> {
     let access_token = get_access_token().ok_or("User is not logged in".to_string())?;
 
@@ -585,46 +579,6 @@ async fn insert_choreography_dancers(
     }
 }
 
-async fn insert_choreography_machine(
-    choreography_id: &str,
-    machine_id: &str,
-) -> Result<(), String> {
-    let access_token = get_access_token().ok_or("User is not logged in".to_string())?;
-
-    let row = NewChoreographyMachine {
-        choreography_id: choreography_id.to_string(),
-        machine_id: machine_id.to_string(),
-    };
-
-    let url = format!("{}/rest/v1/choreography_machines", SUPABASE_URL);
-
-    let response = Request::post(&url)
-        .header("apikey", SUPABASE_PUBLISHABLE_KEY)
-        .header("Authorization", &format!("Bearer {}", access_token))
-        .header("Content-Type", "application/json")
-        .header("Prefer", "return=minimal")
-        .json(&row)
-        .map_err(|e| format!("Could not build choreography machine request: {:?}", e))?
-        .send()
-        .await
-        .map_err(|e| format!("Choreography machine insert failed: {:?}", e))?;
-
-    if response.ok() {
-        Ok(())
-    } else {
-        let status = response.status();
-        let error_text = response
-            .text()
-            .await
-            .unwrap_or_else(|_| "Unknown choreography machine insert error".to_string());
-
-        Err(format!(
-            "Choreography machine insert failed: {} {}",
-            status, error_text
-        ))
-    }
-}
-
 pub async fn submit_choreography(
     title: String,
     duration_seconds: i32,
@@ -633,7 +587,6 @@ pub async fn submit_choreography(
     demo_video_path: String,
     choreo_video_path: String,
     dancer_ids: Vec<String>,
-    machine_id: String,
 ) -> Result<String, String> {
     let created_by = get_current_user_id().ok_or("Missing user id".to_string())?;
 
@@ -649,14 +602,8 @@ pub async fn submit_choreography(
     .await?;
 
     insert_choreography_dancers(&choreography_id, dancer_ids).await?;
-    insert_choreography_machine(&choreography_id, &machine_id).await?;
 
     Ok(choreography_id)
-}
-
-#[derive(Debug, Deserialize, Clone)]
-pub struct SubmittedChoreographyMachineRow {
-    pub machine_id: String,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -668,9 +615,6 @@ pub struct SubmittedChoreographyRow {
     pub status: String,
     pub created_at: String,
     pub submitted_at: Option<String>,
-
-    #[serde(default)]
-    pub choreography_machines: Vec<SubmittedChoreographyMachineRow>,
 }
 
 pub async fn fetch_submitted_choreographies() -> Result<Vec<SubmittedChoreographyRow>, String> {
@@ -678,7 +622,7 @@ pub async fn fetch_submitted_choreographies() -> Result<Vec<SubmittedChoreograph
     let user_id = get_current_user_id().ok_or("Missing user id".to_string())?;
 
     let url = format!(
-        "{}/rest/v1/choreographies?select=id,title,duration_seconds,image_path,status,created_at,submitted_at,choreography_machines(machine_id)&created_by=eq.{}&order=created_at.desc",
+        "{}/rest/v1/choreographies?select=id,title,duration_seconds,image_path,status,created_at,submitted_at&created_by=eq.{}&order=created_at.desc",
         SUPABASE_URL,
         user_id
     );
@@ -707,11 +651,6 @@ pub async fn fetch_submitted_choreographies() -> Result<Vec<SubmittedChoreograph
         .json()
         .await
         .map_err(|e| format!("Could not read submitted choreographies response: {:?}", e))
-}
-
-#[derive(Debug, Deserialize, Clone)]
-pub struct AdminChoreographyMachineRow {
-    pub machine_id: String,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -744,9 +683,6 @@ pub struct AdminChoreographyRow {
     pub submitted_at: Option<String>,
 
     #[serde(default)]
-    pub choreography_machines: Vec<AdminChoreographyMachineRow>,
-
-    #[serde(default)]
     pub choreography_dancers: Vec<AdminChoreographyDancerRow>,
 }
 
@@ -754,7 +690,7 @@ pub async fn fetch_admin_pending_choreographies() -> Result<Vec<AdminChoreograph
     let access_token = get_access_token().ok_or("User is not logged in".to_string())?;
 
     let url = format!(
-        "{}/rest/v1/choreographies?select=id,title,duration_seconds,description,image_path,demo_video_path,choreo_video_path,status,created_at,submitted_at,choreography_machines(machine_id),choreography_dancers(dancer_id,sort_order,dancers(id,name,image_path,strength,flexibility))&status=eq.pending&order=created_at.asc",
+        "{}/rest/v1/choreographies?select=id,title,duration_seconds,description,image_path,demo_video_path,choreo_video_path,status,created_at,submitted_at,choreography_dancers(dancer_id,sort_order,dancers(id,name,image_path,strength,flexibility))&status=eq.pending&order=created_at.asc",
         SUPABASE_URL
     );
 

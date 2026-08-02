@@ -54,17 +54,6 @@ fn load_title(number: u32) -> String {
         .unwrap_or_default()
 }
 
-fn load_target_machine_label(number: u32) -> String {
-    load_draft_entry(number)
-        .map(|entry| match entry.target_machine.as_str() {
-            "machine_1" => "DanceOmatic 1".to_string(),
-            "machine_2" => "DanceOmatic 2".to_string(),
-            "machine_3" => "DanceOmatic 3".to_string(),
-            _ => "DanceOmatic".to_string(),
-        })
-        .unwrap_or_else(|| "DanceOmatic".to_string())
-}
-
 #[derive(Clone, PartialEq, Default, Serialize, Deserialize)]
 struct ChoreographyInfo {
     #[serde(default)]
@@ -229,9 +218,6 @@ fn validate_choreography_for_send(
                 missing_fields.push("Demo video upload");
             }
 
-            if entry.target_machine.trim().is_empty() {
-                missing_fields.push("DanceOmatic machine");
-            }
         }
         None => {
             missing_fields.push("Choreography draft");
@@ -276,7 +262,6 @@ pub fn info_page(props: &InfoPageProps) -> Html {
     let initial_dancer_ids = non_empty(&saved_info.dancer_ids);
 
     let title = use_memo(number, |number| load_title(*number));
-    let target_machine_label = use_memo(number, |number| load_target_machine_label(*number));
 
     let choreo_image = use_state(move || initial_choreo_image);
     let choreo_image_path = use_state(move || initial_choreo_image_path);
@@ -733,8 +718,6 @@ pub fn info_page(props: &InfoPageProps) -> Html {
                 return;
             };
 
-            let machine_id = draft_entry.target_machine.clone();
-
             let is_submitting = is_submitting.clone();
             let submitted_choreography_id = submitted_choreography_id.clone();
             let navigator = navigator.clone();
@@ -750,7 +733,6 @@ pub fn info_page(props: &InfoPageProps) -> Html {
                     demo_video_path,
                     choreo_video_path_value,
                     selected_ids,
-                    machine_id,
                 )
                 .await
                 {
@@ -791,7 +773,7 @@ pub fn info_page(props: &InfoPageProps) -> Html {
                         " }
                     </p>
                     <p>
-                        { "At least two dancers must be added before pressing Send to danceOmatic" }
+                        { "At least two dancers must be added before submitting the choreography for administrator review." }
                     </p>
                 </div>
 
@@ -1003,7 +985,7 @@ pub fn info_page(props: &InfoPageProps) -> Html {
                             } else if (*submitted_choreography_id).is_some() {
                                 "Submitted".to_string()
                             } else {
-                                format!("Send to {}", (*target_machine_label).clone())
+                                "Submit for review".to_string()
                             }
                         }
                     </button>
