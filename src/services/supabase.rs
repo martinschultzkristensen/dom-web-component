@@ -790,6 +790,87 @@ fn is_valid_machine_id(machine_id: &str) -> bool {
     matches!(machine_id, "machine_1" | "machine_2" | "machine_3")
 }
 
+async fn call_authenticated_rpc(function_name: &str, body: Value) -> Result<Value, String> {
+    let access_token = get_access_token().ok_or("User is not logged in".to_string())?;
+    let url = format!("{}/rest/v1/rpc/{}", SUPABASE_URL, function_name);
+
+    let response = Request::post(&url)
+        .header("apikey", SUPABASE_PUBLISHABLE_KEY)
+        .header("Authorization", &format!("Bearer {}", access_token))
+        .header("Content-Type", "application/json")
+        .json(&body)
+        .map_err(|e| format!("Could not build {} RPC request: {:?}", function_name, e))?
+        .send()
+        .await
+        .map_err(|e| format!("{} RPC request failed: {:?}", function_name, e))?;
+
+    if !response.ok() {
+        let status = response.status();
+        let error_text = response
+            .text()
+            .await
+            .unwrap_or_else(|_| format!("Unknown {} RPC error", function_name));
+
+        return Err(format!(
+            "{} RPC failed: {} {}",
+            function_name, status, error_text
+        ));
+    }
+
+    response
+        .json()
+        .await
+        .map_err(|e| format!("Could not read {} RPC response: {:?}", function_name, e))
+}
+
+pub async fn fetch_admin_machine_delivery_workspace(
+    machine_id: &str,
+) -> Result<Value, String> {
+    if !is_valid_machine_id(machine_id) {
+        return Err("Invalid machine id".to_string());
+    }
+
+    call_authenticated_rpc(
+        "admin_get_machine_delivery_workspace",
+        serde_json::json!({
+            "p_machine_id": machine_id,
+        }),
+    )
+    .await
+}
+
+pub async fn replace_admin_machine_draft(
+    machine_id: &str,
+    choreography_ids: Vec<String>,
+) -> Result<Value, String> {
+    if !is_valid_machine_id(machine_id) {
+        return Err("Invalid machine id".to_string());
+    }
+
+    call_authenticated_rpc(
+        "admin_replace_machine_draft",
+        serde_json::json!({
+            "p_machine_id": machine_id,
+            "p_choreography_ids": choreography_ids,
+        }),
+    )
+    .await
+}
+
+pub async fn send_admin_machine_draft(machine_id: &str) -> Result<Value, String> {
+    if !is_valid_machine_id(machine_id) {
+        return Err("Invalid machine id".to_string());
+    }
+
+    call_authenticated_rpc(
+        "admin_send_machine_draft",
+        serde_json::json!({
+            "p_machine_id": machine_id,
+        }),
+    )
+    .await
+}
+
 pub async fn fetch_machine_media() -> Result<Vec<MachineMediaRow>, String> {
     let access_token = get_access_token().ok_or("User is not logged in".to_string())?;
 
