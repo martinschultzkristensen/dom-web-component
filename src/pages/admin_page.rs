@@ -1,7 +1,9 @@
-﻿use crate::services::supabase::{
-    create_choreography_file_signed_url, fetch_admin_pending_choreographies, fetch_machine_media,
-    get_my_profile, update_choreography_status, update_machine_media, upload_machine_media_video,
-    AdminChoreographyRow, MachineMediaRow,
+use crate::services::supabase::{
+    create_choreography_file_signed_url, fetch_admin_machine_delivery_workspace,
+    fetch_admin_pending_choreographies, fetch_machine_media, get_my_profile,
+    replace_admin_machine_draft, send_admin_machine_draft, update_choreography_status,
+    update_machine_media, upload_machine_media_video, AdminChoreographyRow,
+    AdminMachineDeliveryWorkspace, MachineMediaRow,
 };
 use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
@@ -120,6 +122,482 @@ async fn row_to_view(row: AdminChoreographyRow) -> AdminChoreographyView {
         demo_video_url,
         choreo_video_url,
         dancers,
+    }
+}
+
+#[derive(Properties, PartialEq)]
+struct AdminMachineDeliveryPanelProps {
+    machine_id: String,
+    approved_library_reload: u32,
+    on_action_message: Callback<String>,
+}
+
+#[function_component(AdminMachineDeliveryPanel)]
+fn admin_machine_delivery_panel(props: &AdminMachineDeliveryPanelProps) -> Html {
+    let workspace = use_state(|| None::<AdminMachineDeliveryWorkspace>);
+    let is_loading = use_state(|| true);
+    let is_saving_draft = use_state(|| false);
+    let is_sending = use_state(|| false);
+    let error = use_state(|| None::<String>);
+    let local_reload_counter = use_state(|| 0u32);
+
+    {
+        let workspace = workspace.clone();
+        let is_loading = is_loading.clone();
+        let error = error.clone();
+
+        let machine_id_dependency = props.machine_id.clone();
+        let approved_library_reload_dependency = props.approved_library_reload;
+        let local_reload_dependency = *local_reload_counter;
+
+        use_effect_with(
+            (
+                machine_id_dependency,
+                approved_library_reload_dependency,
+                local_reload_dependency,
+            ),
+            move |(machine_id, _, _)| {
+                let machine_id = machine_id.clone();
+
+                spawn_local(async move {
+                    is_loading.set(true);
+
+                    match fetch_admin_machine_delivery_workspace(&machine_id).await {
+                        Ok(result) => {
+                            workspace.set(Some(result));
+                            error.set(None);
+                        }
+                        Err(message) => {
+                            workspace.set(None);
+                            error.set(Some(message));
+                        }
+                    }
+
+                    is_loading.set(false);
+                });
+
+                || ()
+            },
+        );
+    }
+
+    let on_save_draft = {
+        let workspace = workspace.clone();
+        let is_saving_draft = is_saving_draft.clone();
+        let is_sending = is_sending.clone();
+        let error = error.clone();
+        let machine_id = props.machine_id.clone();
+
+        Callback::from(move |choreography_ids: Vec<String>| {
+            if *is_saving_draft || *is_sending {
+                return;
+            }
+
+            let workspace = workspace.clone();
+            let is_saving_draft_for_task = is_saving_draft.clone();
+            let error = error.clone();
+            let machine_id = machine_id.clone();
+
+            is_saving_draft.set(true);
+            error.set(None);
+
+            spawn_local(async move {
+                match replace_admin_machine_draft(&machine_id, choreography_ids).await {
+                    Ok(updated_workspace) => {
+                        workspace.set(Some(updated_workspace));
+                        error.set(None);
+                    }
+                    Err(message) => {
+                        error.set(Some(message));
+                    }
+                }
+
+                is_saving_draft_for_task.set(false);
+            });
+        })
+    };
+
+    let on_send = {
+        let is_saving_draft = is_saving_draft.clone();
+        let is_sending = is_sending.clone();
+        let error = error.clone();
+        let local_reload_counter = local_reload_counter.clone();
+        let on_action_message = props.on_action_message.clone();
+        let machine_id = props.machine_id.clone();
+        let current_local_reload = *local_reload_counter;
+
+        Callback::from(move |_| {
+            if *is_saving_draft || *is_sending {
+                return;
+            }
+
+            let should_send = web_sys::window()
+                .and_then(|window| {
+                    window
+                        .confirm_with_message(
+                            "Send this complete draft to the selected DanceOmatic machine?",
+                        )
+                        .ok()
+                })
+                .unwrap_or(false);
+
+            if !should_send {
+                return;
+            }
+
+            let is_sending_for_task = is_sending.clone();
+            let error = error.clone();
+            let local_reload_counter = local_reload_counter.clone();
+            let on_action_message = on_action_message.clone();
+            let machine_id = machine_id.clone();
+
+            is_sending.set(true);
+            error.set(None);
+
+            spawn_local(async move {
+                match send_admin_machine_draft(&machine_id).await {
+                    Ok(result) => {
+                        on_action_message.emit(format!(
+                            "Sent {} version {} with {} choreographies and {} files.",
+                            result.machine_display_name,
+                            result.version,
+                            result.choreography_count,
+                            result.file_count
+                        ));
+                        error.set(None);
+                        local_reload_counter.set(current_local_reload + 1);
+                    }
+                    Err(message) => {
+                        error.set(Some(message));
+                    }
+                }
+
+                is_sending_for_task.set(false);
+            });
+        })
+    };
+
+    let is_busy = *is_saving_draft || *is_sending;
+
+    let panel_content = if *is_loading {
+        html! {
+            <p class="login-help-text">
+                { "Loading machine choreography delivery..." }
+            </p>
+        }
+    } else if let Some(workspace_value) = &*workspace {
+        let draft_ids = workspace_value
+            .draft
+            .iter()
+            .map(|item| item.choreography_id.clone())
+            .collect::<Vec<String>>();
+
+        let available_library_count = workspace_value
+            .approved_library
+            .iter()
+            .filter(|item| !item.selected)
+            .count();
+
+        let latest_deployment = if let Some(deployment) = &workspace_value.latest_deployment {
+            html! {
+                <div class="creator-help-box">
+                    <p>
+                        <strong>{ "Latest sent version: " }</strong>
+                        { deployment.version.to_string() }
+                    </p>
+                    <p>
+                        <strong>{ "Status: " }</strong>
+                        { deployment.status.clone() }
+                    </p>
+                    <p>
+                        <strong>{ "Content: " }</strong>
+                        {
+                            format!(
+                                "{} choreographies / {} files",
+                                deployment.choreography_count,
+                                deployment.file_count
+                            )
+                        }
+                    </p>
+                    <p>
+                        <strong>{ "Created: " }</strong>
+                        { deployment.created_at.clone() }
+                    </p>
+
+                    if let Some(last_error) = &deployment.last_error {
+                        <p class="error-message">
+                            { last_error.clone() }
+                        </p>
+                    }
+                </div>
+            }
+        } else {
+            html! {
+                <div class="creator-help-box">
+                    <p>{ "No version has been sent to this machine yet." }</p>
+                </div>
+            }
+        };
+
+        html! {
+            <>
+                <div class="machine-media-header">
+                    <div>
+                        <h2>{ "Machine choreography delivery" }</h2>
+                        <p>
+                            {
+                                "Build the exact ordered choreography menu for the selected machine. Draft changes do not affect the physical machine until Send is pressed."
+                            }
+                        </p>
+                    </div>
+                </div>
+
+                <p class="machine-media-updated">
+                    <strong>{ "Selected target machine: " }</strong>
+                    { workspace_value.machine.display_name.clone() }
+                </p>
+
+                if !workspace_value.machine.is_active {
+                    <p class="error-message">
+                        { "This machine is disabled and cannot receive new content." }
+                    </p>
+                }
+
+                { latest_deployment }
+
+                if let Some(message) = &*error {
+                    <p class="error-message">
+                        { message.clone() }
+                    </p>
+                }
+
+                <div class="machine-media-grid">
+                    <article class="machine-media-card">
+                        <h3>{ "Approved library" }</h3>
+                        <p class="machine-media-selected-file">
+                            {
+                                format!(
+                                    "{} approved choreographies are available to add.",
+                                    available_library_count
+                                )
+                            }
+                        </p>
+
+                        if workspace_value.approved_library.is_empty() {
+                            <div class="creator-help-box">
+                                <p>{ "There are no approved choreographies in the library yet." }</p>
+                            </div>
+                        } else if available_library_count == 0 {
+                            <div class="creator-help-box">
+                                <p>{ "Every approved choreography is already in this draft." }</p>
+                            </div>
+                        } else {
+                            {
+                                for workspace_value
+                                    .approved_library
+                                    .iter()
+                                    .filter(|item| !item.selected)
+                                    .map(|item| {
+                                        let choreography_id = item.id.clone();
+                                        let choreography_title = item.title.clone();
+                                        let duration_seconds = item.duration_seconds;
+                                        let current_ids = draft_ids.clone();
+                                        let on_save_draft = on_save_draft.clone();
+
+                                        let on_add = Callback::from(move |_| {
+                                            let mut updated_ids = current_ids.clone();
+                                            updated_ids.push(choreography_id.clone());
+                                            on_save_draft.emit(updated_ids);
+                                        });
+
+                                        html! {
+                                            <div class="creator-help-box" key={item.id.clone()}>
+                                                <p>
+                                                    <strong>{ choreography_title }</strong>
+                                                </p>
+                                                <p>
+                                                    {
+                                                        format!(
+                                                            "Duration: {}",
+                                                            format_duration(duration_seconds)
+                                                        )
+                                                    }
+                                                </p>
+                                                <button
+                                                    class="admin-approve-button"
+                                                    onclick={on_add}
+                                                    disabled={is_busy}
+                                                >
+                                                    { "Add to machine draft" }
+                                                </button>
+                                            </div>
+                                        }
+                                    })
+                            }
+                        }
+                    </article>
+
+                    <article class="machine-media-card">
+                        <h3>{ "Machine draft" }</h3>
+                        <p class="machine-media-selected-file">
+                            {
+                                format!(
+                                    "{} choreographies in the exact order shown below.",
+                                    workspace_value.draft.len()
+                                )
+                            }
+                        </p>
+
+                        if workspace_value.draft.is_empty() {
+                            <div class="creator-help-box">
+                                <p>
+                                    {
+                                        "The draft is empty. Add at least one approved choreography before sending."
+                                    }
+                                </p>
+                            </div>
+                        } else {
+                            {
+                                for workspace_value.draft.iter().enumerate().map(|(index, item)| {
+                                    let current_ids_for_up = draft_ids.clone();
+                                    let current_ids_for_down = draft_ids.clone();
+                                    let current_ids_for_remove = draft_ids.clone();
+
+                                    let on_save_draft_for_up = on_save_draft.clone();
+                                    let on_save_draft_for_down = on_save_draft.clone();
+                                    let on_save_draft_for_remove = on_save_draft.clone();
+
+                                    let on_move_up = Callback::from(move |_| {
+                                        if index == 0 {
+                                            return;
+                                        }
+
+                                        let mut updated_ids = current_ids_for_up.clone();
+                                        updated_ids.swap(index, index - 1);
+                                        on_save_draft_for_up.emit(updated_ids);
+                                    });
+
+                                    let on_move_down = Callback::from(move |_| {
+                                        if index + 1 >= current_ids_for_down.len() {
+                                            return;
+                                        }
+
+                                        let mut updated_ids = current_ids_for_down.clone();
+                                        updated_ids.swap(index, index + 1);
+                                        on_save_draft_for_down.emit(updated_ids);
+                                    });
+
+                                    let on_remove = Callback::from(move |_| {
+                                        if index >= current_ids_for_remove.len() {
+                                            return;
+                                        }
+
+                                        let mut updated_ids = current_ids_for_remove.clone();
+                                        updated_ids.remove(index);
+                                        on_save_draft_for_remove.emit(updated_ids);
+                                    });
+
+                                    html! {
+                                        <div
+                                            class="creator-help-box"
+                                            key={item.choreography_id.clone()}
+                                        >
+                                            <p>
+                                                <strong>
+                                                    {
+                                                        format!(
+                                                            "{}. {}",
+                                                            item.display_order,
+                                                            item.title
+                                                        )
+                                                    }
+                                                </strong>
+                                            </p>
+                                            <p>
+                                                {
+                                                    format!(
+                                                        "Duration: {}",
+                                                        format_duration(item.duration_seconds)
+                                                    )
+                                                }
+                                            </p>
+
+                                            <div class="admin-review-actions">
+                                                <button
+                                                    class="small-remove-button"
+                                                    onclick={on_move_up}
+                                                    disabled={is_busy || index == 0}
+                                                >
+                                                    { "Move up" }
+                                                </button>
+
+                                                <button
+                                                    class="small-remove-button"
+                                                    onclick={on_move_down}
+                                                    disabled={
+                                                        is_busy
+                                                            || index + 1
+                                                                >= workspace_value.draft.len()
+                                                    }
+                                                >
+                                                    { "Move down" }
+                                                </button>
+
+                                                <button
+                                                    class="admin-reject-button"
+                                                    onclick={on_remove}
+                                                    disabled={is_busy}
+                                                >
+                                                    { "Remove" }
+                                                </button>
+                                            </div>
+                                        </div>
+                                    }
+                                })
+                            }
+                        }
+
+                        <button
+                            class="machine-media-save-button"
+                            onclick={on_send}
+                            disabled={
+                                is_busy
+                                    || workspace_value.draft.is_empty()
+                                    || !workspace_value.machine.is_active
+                            }
+                        >
+                            {
+                                if *is_sending {
+                                    "Sending..."
+                                } else if *is_saving_draft {
+                                    "Saving draft..."
+                                } else {
+                                    "Send to machine"
+                                }
+                            }
+                        </button>
+                    </article>
+                </div>
+            </>
+        }
+    } else if let Some(message) = &*error {
+        html! {
+            <p class="error-message">
+                { message.clone() }
+            </p>
+        }
+    } else {
+        html! {
+            <div class="creator-help-box">
+                <p>{ "Machine delivery workspace is unavailable." }</p>
+            </div>
+        }
+    };
+
+    html! {
+        <section class="machine-media-panel">
+            { panel_content }
+        </section>
     }
 }
 
@@ -861,7 +1339,15 @@ pub fn admin_page() -> Html {
             }
         };
 
-                html! {
+        let on_machine_delivery_action = {
+            let action_message = action_message.clone();
+
+            Callback::from(move |message: String| {
+                action_message.set(Some(message));
+            })
+        };
+
+        html! {
             <>
                 if let Some(message) = &*action_message {
                     <p class="admin-action-message">
@@ -870,6 +1356,13 @@ pub fn admin_page() -> Html {
                 }
 
                 { machine_media_content }
+
+                <AdminMachineDeliveryPanel
+                    key={selected_machine_id_value.clone()}
+                    machine_id={selected_machine_id_value.clone()}
+                    approved_library_reload={*reload_counter}
+                    on_action_message={on_machine_delivery_action}
+                />
 
                 <section class="admin-section-block">
                     <h2>{ "Pending choreographies" }</h2>
@@ -890,4 +1383,3 @@ pub fn admin_page() -> Html {
         </div>
     }
 }
-

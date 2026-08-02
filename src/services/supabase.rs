@@ -823,52 +823,112 @@ async fn call_authenticated_rpc(function_name: &str, body: Value) -> Result<Valu
         .map_err(|e| format!("Could not read {} RPC response: {:?}", function_name, e))
 }
 
+#[derive(Debug, Deserialize, Clone, PartialEq)]
+pub struct AdminMachineDeliveryMachine {
+    pub id: String,
+    pub display_name: String,
+    pub is_active: bool,
+}
+
+#[derive(Debug, Deserialize, Clone, PartialEq)]
+pub struct AdminMachineDeliveryLibraryItem {
+    pub id: String,
+    pub title: String,
+    pub duration_seconds: i32,
+    pub selected: bool,
+}
+
+#[derive(Debug, Deserialize, Clone, PartialEq)]
+pub struct AdminMachineDeliveryDraftItem {
+    pub choreography_id: String,
+    pub display_order: i32,
+    pub title: String,
+    pub duration_seconds: i32,
+}
+
+#[derive(Debug, Deserialize, Clone, PartialEq)]
+pub struct AdminMachineDeliveryDeployment {
+    pub version: i64,
+    pub status: String,
+    pub choreography_count: i32,
+    pub file_count: i32,
+    pub created_at: String,
+    pub last_error: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Clone, PartialEq)]
+pub struct AdminMachineDeliveryWorkspace {
+    pub machine: AdminMachineDeliveryMachine,
+    pub approved_library: Vec<AdminMachineDeliveryLibraryItem>,
+    pub draft: Vec<AdminMachineDeliveryDraftItem>,
+    pub latest_deployment: Option<AdminMachineDeliveryDeployment>,
+}
+
+#[derive(Debug, Deserialize, Clone, PartialEq)]
+pub struct AdminMachineDeliverySendResult {
+    pub machine_display_name: String,
+    pub version: i64,
+    pub choreography_count: i32,
+    pub file_count: i32,
+}
+
 pub async fn fetch_admin_machine_delivery_workspace(
     machine_id: &str,
-) -> Result<Value, String> {
+) -> Result<AdminMachineDeliveryWorkspace, String> {
     if !is_valid_machine_id(machine_id) {
         return Err("Invalid machine id".to_string());
     }
 
-    call_authenticated_rpc(
+    let value = call_authenticated_rpc(
         "admin_get_machine_delivery_workspace",
         serde_json::json!({
             "p_machine_id": machine_id,
         }),
     )
-    .await
+    .await?;
+
+    serde_json::from_value(value)
+        .map_err(|e| format!("Could not read machine delivery workspace: {:?}", e))
 }
 
 pub async fn replace_admin_machine_draft(
     machine_id: &str,
     choreography_ids: Vec<String>,
-) -> Result<Value, String> {
+) -> Result<AdminMachineDeliveryWorkspace, String> {
     if !is_valid_machine_id(machine_id) {
         return Err("Invalid machine id".to_string());
     }
 
-    call_authenticated_rpc(
+    let value = call_authenticated_rpc(
         "admin_replace_machine_draft",
         serde_json::json!({
             "p_machine_id": machine_id,
             "p_choreography_ids": choreography_ids,
         }),
     )
-    .await
+    .await?;
+
+    serde_json::from_value(value)
+        .map_err(|e| format!("Could not read updated machine delivery workspace: {:?}", e))
 }
 
-pub async fn send_admin_machine_draft(machine_id: &str) -> Result<Value, String> {
+pub async fn send_admin_machine_draft(
+    machine_id: &str,
+) -> Result<AdminMachineDeliverySendResult, String> {
     if !is_valid_machine_id(machine_id) {
         return Err("Invalid machine id".to_string());
     }
 
-    call_authenticated_rpc(
+    let value = call_authenticated_rpc(
         "admin_send_machine_draft",
         serde_json::json!({
             "p_machine_id": machine_id,
         }),
     )
-    .await
+    .await?;
+
+    serde_json::from_value(value)
+        .map_err(|e| format!("Could not read machine delivery send result: {:?}", e))
 }
 
 pub async fn fetch_machine_media() -> Result<Vec<MachineMediaRow>, String> {
