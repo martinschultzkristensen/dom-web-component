@@ -1,5 +1,6 @@
 use crate::services::supabase::{
-    create_choreography_file_signed_url, fetch_admin_machine_delivery_workspace,
+    create_choreography_file_signed_url, delete_admin_choreography,
+    fetch_admin_machine_delivery_workspace,
     fetch_admin_pending_choreographies, fetch_machine_media, get_my_profile,
     replace_admin_machine_draft, send_admin_machine_draft, update_choreography_status,
     update_machine_media, upload_machine_media_video, AdminChoreographyRow,
@@ -138,6 +139,7 @@ fn admin_machine_delivery_panel(props: &AdminMachineDeliveryPanelProps) -> Html 
     let is_loading = use_state(|| true);
     let is_saving_draft = use_state(|| false);
     let is_sending = use_state(|| false);
+    let is_deleting = use_state(|| false);
     let error = use_state(|| None::<String>);
     let local_reload_counter = use_state(|| 0u32);
 
@@ -277,7 +279,61 @@ fn admin_machine_delivery_panel(props: &AdminMachineDeliveryPanelProps) -> Html 
         })
     };
 
-    let is_busy = *is_saving_draft || *is_sending;
+    let on_delete_choreography = {
+        let is_saving_draft = is_saving_draft.clone();
+        let is_sending = is_sending.clone();
+        let is_deleting = is_deleting.clone();
+        let error = error.clone();
+        let local_reload_counter = local_reload_counter.clone();
+        let on_action_message = props.on_action_message.clone();
+        let current_local_reload = *local_reload_counter;
+
+        Callback::from(move |(choreography_id, choreography_title): (String, String)| {
+            if *is_saving_draft || *is_sending || *is_deleting {
+                return;
+            }
+
+            let should_delete = web_sys::window()
+                .and_then(|window| {
+                    window
+                        .confirm_with_message(&format!(
+                            "Delete \"{}\" permanently?\n\nThis removes the choreography from the database, machine drafts/assignments and its choreography media files.\n\nThis cannot be undone.",
+                            choreography_title
+                        ))
+                        .ok()
+                })
+                .unwrap_or(false);
+
+            if !should_delete {
+                return;
+            }
+
+            let is_deleting_for_task = is_deleting.clone();
+            let error = error.clone();
+            let local_reload_counter = local_reload_counter.clone();
+            let on_action_message = on_action_message.clone();
+
+            is_deleting.set(true);
+            error.set(None);
+
+            spawn_local(async move {
+                match delete_admin_choreography(choreography_id).await {
+                    Ok(message) => {
+                        on_action_message.emit(message);
+                        error.set(None);
+                        local_reload_counter.set(current_local_reload + 1);
+                    }
+                    Err(message) => {
+                        error.set(Some(message));
+                    }
+                }
+
+                is_deleting_for_task.set(false);
+            });
+        })
+    };
+
+    let is_busy = *is_saving_draft || *is_sending || *is_deleting;
 
     let panel_content = if *is_loading {
         html! {
@@ -387,27 +443,33 @@ fn admin_machine_delivery_panel(props: &AdminMachineDeliveryPanelProps) -> Html 
                             <div class="creator-help-box">
                                 <p>{ "There are no approved choreographies in the library yet." }</p>
                             </div>
-                        } else if available_library_count == 0 {
-                            <div class="creator-help-box">
-                                <p>{ "Every approved choreography is already in this draft." }</p>
-                            </div>
                         } else {
                             {
                                 for workspace_value
                                     .approved_library
                                     .iter()
-                                    .filter(|item| !item.selected)
                                     .map(|item| {
                                         let choreography_id = item.id.clone();
+                                        let choreography_id_for_delete = item.id.clone();
                                         let choreography_title = item.title.clone();
+                                        let choreography_title_for_delete = item.title.clone();
                                         let duration_seconds = item.duration_seconds;
+                                        let is_selected = item.selected;
                                         let current_ids = draft_ids.clone();
                                         let on_save_draft = on_save_draft.clone();
+                                        let on_delete_choreography = on_delete_choreography.clone();
 
                                         let on_add = Callback::from(move |_| {
                                             let mut updated_ids = current_ids.clone();
                                             updated_ids.push(choreography_id.clone());
                                             on_save_draft.emit(updated_ids);
+                                        });
+
+                                        let on_delete = Callback::from(move |_| {
+                                            on_delete_choreography.emit((
+                                                choreography_id_for_delete.clone(),
+                                                choreography_title_for_delete.clone(),
+                                            ));
                                         });
 
                                         html! {
@@ -423,13 +485,35 @@ fn admin_machine_delivery_panel(props: &AdminMachineDeliveryPanelProps) -> Html 
                                                         )
                                                     }
                                                 </p>
-                                                <button
-                                                    class="admin-approve-button"
-                                                    onclick={on_add}
-                                                    disabled={is_busy}
-                                                >
-                                                    { "Add to machine draft" }
-                                                </button>
+                                                <div class="admin-review-actions">
+                                                    if is_selected {
+                                                        <span class="submitted-status-pill">
+                                                            { "Already in machine draft" }
+                                                        </span>
+                                                    } else {
+                                                        <button
+                                                            class="admin-approve-button"
+                                                            onclick={on_add}
+                                                            disabled={is_busy}
+                                                        >
+                                                            { "Add to machine draft" }
+                                                        </button>
+                                                    }
+
+                                                    <button
+                                                        class="admin-reject-button"
+                                                        onclick={on_delete}
+                                                        disabled={is_busy}
+                                                    >
+                                                        {
+                                                            if *is_deleting {
+                                                                "Deleting..."
+                                                            } else {
+                                                                "Delete permanently"
+                                                            }
+                                                        }
+                                                    </button>
+                                                </div>
                                             </div>
                                         }
                                     })
