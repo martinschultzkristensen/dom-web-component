@@ -653,6 +653,154 @@ pub async fn fetch_submitted_choreographies() -> Result<Vec<SubmittedChoreograph
         .map_err(|e| format!("Could not read submitted choreographies response: {:?}", e))
 }
 
+#[derive(Debug, Deserialize)]
+struct AdminChoreographyDeleteRow {
+    title: String,
+    image_path: String,
+    demo_video_path: String,
+    choreo_video_path: String,
+}
+
+async fn fetch_admin_choreography_for_delete(
+    choreography_id: &str,
+) -> Result<AdminChoreographyDeleteRow, String> {
+    let access_token = get_access_token().ok_or("User is not logged in".to_string())?;
+
+    let url = format!(
+        "{}/rest/v1/choreographies?select=id,title,image_path,demo_video_path,choreo_video_path&id=eq.{}&limit=1",
+        SUPABASE_URL,
+        choreography_id
+    );
+
+    let response = Request::get(&url)
+        .header("apikey", SUPABASE_PUBLISHABLE_KEY)
+        .header("Authorization", &format!("Bearer {}", access_token))
+        .send()
+        .await
+        .map_err(|e| format!("Could not load choreography before delete: {:?}", e))?;
+
+    if !response.ok() {
+        let status = response.status();
+        let error_text = response
+            .text()
+            .await
+            .unwrap_or_else(|_| "Unknown choreography lookup error".to_string());
+
+        return Err(format!(
+            "Could not load choreography before delete: {} {}",
+            status, error_text
+        ));
+    }
+
+    let mut rows: Vec<AdminChoreographyDeleteRow> = response
+        .json()
+        .await
+        .map_err(|e| format!("Could not read choreography before delete: {:?}", e))?;
+
+    rows.pop()
+        .ok_or("Choreography was not found or is not accessible.".to_string())
+}
+
+async fn delete_choreography_storage_object(path: &str) -> Result<(), String> {
+    if path.trim().is_empty() {
+        return Ok(());
+    }
+
+    let access_token = get_access_token().ok_or("User is not logged in".to_string())?;
+    let url = format!(
+        "{}/storage/v1/object/choreography-files/{}",
+        SUPABASE_URL, path
+    );
+
+    let response = Request::delete(&url)
+        .header("apikey", SUPABASE_PUBLISHABLE_KEY)
+        .header("Authorization", &format!("Bearer {}", access_token))
+        .send()
+        .await
+        .map_err(|e| format!("Could not delete choreography file \"{}\": {:?}", path, e))?;
+
+    if response.ok() {
+        Ok(())
+    } else {
+        let status = response.status();
+        let error_text = response
+            .text()
+            .await
+            .unwrap_or_else(|_| "Unknown storage delete error".to_string());
+
+        Err(format!(
+            "Could not delete choreography file \"{}\": {} {}",
+            path, status, error_text
+        ))
+    }
+}
+
+pub async fn delete_admin_choreography(choreography_id: String) -> Result<String, String> {
+    let choreography = fetch_admin_choreography_for_delete(&choreography_id).await?;
+    let access_token = get_access_token().ok_or("User is not logged in".to_string())?;
+
+    let url = format!(
+        "{}/rest/v1/choreographies?id=eq.{}&select=id",
+        SUPABASE_URL, choreography_id
+    );
+
+    let response = Request::delete(&url)
+        .header("apikey", SUPABASE_PUBLISHABLE_KEY)
+        .header("Authorization", &format!("Bearer {}", access_token))
+        .header("Prefer", "return=representation")
+        .send()
+        .await
+        .map_err(|e| format!("Choreography delete failed: {:?}", e))?;
+
+    if !response.ok() {
+        let status = response.status();
+        let error_text = response
+            .text()
+            .await
+            .unwrap_or_else(|_| "Unknown choreography delete error".to_string());
+
+        return Err(format!(
+            "Choreography delete failed: {} {}",
+            status, error_text
+        ));
+    }
+
+    let deleted_rows: Vec<Value> = response
+        .json()
+        .await
+        .map_err(|e| format!("Could not verify choreography delete: {:?}", e))?;
+
+    if deleted_rows.is_empty() {
+        return Err("Choreography was not deleted. No database row was removed.".to_string());
+    }
+
+    let mut paths = vec![
+        choreography.image_path,
+        choreography.demo_video_path,
+        choreography.choreo_video_path,
+    ];
+    paths.retain(|path| !path.trim().is_empty());
+    paths.sort();
+    paths.dedup();
+
+    let mut cleanup_errors = Vec::<String>::new();
+    for path in paths {
+        if let Err(message) = delete_choreography_storage_object(&path).await {
+            cleanup_errors.push(message);
+        }
+    }
+
+    if cleanup_errors.is_empty() {
+        Ok(format!("Deleted \"{}\" permanently.", choreography.title))
+    } else {
+        Ok(format!(
+            "Deleted \"{}\" from the database, but some media files could not be removed: {}",
+            choreography.title,
+            cleanup_errors.join(" | ")
+        ))
+    }
+}
+
 #[derive(Debug, Deserialize, Clone)]
 pub struct AdminDancerInfoRow {
     pub id: String,
