@@ -9,6 +9,13 @@ use wasm_bindgen_futures::spawn_local;
 use web_sys::{DragEvent, Event, File, FileReader, HtmlInputElement};
 use yew::prelude::*;
 
+/// Shown for any dancer without their own image, instead of uploading the same
+/// default picture to Supabase Storage for every dancer. Bundled as a local
+/// static asset (see main_page.rs's use of "static/hero.jpg" for precedent).
+/// Absolute path: this page lives at "/dancers", where a relative path would
+/// resolve to "/dancers/static/..." and 404.
+const DEFAULT_DANCER_AVATAR: &str = "/static/DefaultAvatar.jpg";
+
 #[derive(Clone, PartialEq)]
 struct DancerView {
     id: String,
@@ -299,11 +306,6 @@ pub fn dancer_page() -> Html {
                 return;
             }
 
-            let Some(selected_image_file) = selected_image_file else {
-                add_error.set(Some("Please choose a dancer image.".to_string()));
-                return;
-            };
-
             let Some(user_id) = get_current_user_id() else {
                 add_error.set(Some("User is not logged in.".to_string()));
                 return;
@@ -325,13 +327,19 @@ pub fn dancer_page() -> Html {
             let reload_counter = reload_counter.clone();
 
             spawn_local(async move {
-                let image_path = match upload_dancer_image(selected_image_file).await {
-                    Ok(path) => Some(path),
-                    Err(message) => {
-                        add_error.set(Some(message));
-                        is_saving.set(false);
-                        return;
-                    }
+                // No image chosen: leave `image_path` as `None` so the dancer falls
+                // back to the local static default avatar instead of uploading the
+                // same default image to Supabase for every dancer.
+                let image_path = match selected_image_file {
+                    Some(file) => match upload_dancer_image(file).await {
+                        Ok(path) => Some(path),
+                        Err(message) => {
+                            add_error.set(Some(message));
+                            is_saving.set(false);
+                            return;
+                        }
+                    },
+                    None => None,
                 };
 
                 let new_dancer = NewDancer {
@@ -867,17 +875,11 @@ pub fn dancer_page() -> Html {
                                             </div>
                                         </div>
                                     } else {
-                                        if let Some(image_url) = &dancer.image_url {
-                                            <img
-                                                src={image_url.clone()}
-                                                alt={format!("Image of {}", dancer.name)}
-                                                class="dancer-card-image"
-                                            />
-                                        } else {
-                                            <div class="dancer-card-image-placeholder">
-                                                { "Image unavailable" }
-                                            </div>
-                                        }
+                                        <img
+                                            src={dancer.image_url.clone().unwrap_or_else(|| DEFAULT_DANCER_AVATAR.to_string())}
+                                            alt={format!("Image of {}", dancer.name)}
+                                            class="dancer-card-image"
+                                        />
 
                                         <div class="dancer-card-content">
                                             <h3>{ dancer.name.clone() }</h3>
